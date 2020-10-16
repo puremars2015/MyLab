@@ -43,10 +43,14 @@ namespace BlazorServer
             {
                 app.UseExceptionHandler("/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+
+                //啟動強制使用https通訊
                 app.UseHsts();
             }
 
+            //啟動自動跳轉為https
             app.UseHttpsRedirection();
+
             app.UseStaticFiles();
 
             app.UseRouting();
@@ -55,6 +59,8 @@ namespace BlazorServer
             {
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
+
+                //使用api
                 endpoints.MapControllers();
             });
         }
