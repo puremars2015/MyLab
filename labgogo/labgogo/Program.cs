@@ -4,6 +4,12 @@ using System.Linq;
 
 namespace labgogo
 {
+
+    class color : Object
+    {
+
+    }
+
     
     // 賣價(Ask)：金融機構賣給投資人的價格 <<投資人要買債券看Ask
     // 買價(Bid)：金融機構跟投資人買的價格 <<投資人要賣債券看Bid
@@ -22,11 +28,15 @@ namespace labgogo
 
     class LinkedList
     {
+        public const color clrNONE = null;
+
         public LinkNode ZeroNode;
 
         public LinkNode CurrentNode;
 
         public int CurrentLength;
+
+        public double TotalLots;
 
         public LinkedList()
         {
@@ -54,34 +64,57 @@ namespace labgogo
             }
 
             CurrentNode.Price = price;
-            CurrentNode.Amount = amount;
+            CurrentNode.Lots = amount;
             CurrentNode.Type = type;
         }
 
+
+        /// <summary>
+        /// 平倉掛勾
+        /// </summary>
+        /// <param name="ticket"></param>
+        /// <param name="lots"></param>
+        /// <param name="price"></param>
+        /// <param name="slippage"></param>
+        /// <param name="arrow_color"></param>
+        /// <returns></returns>
+        public bool OrderClose(int ticket, double lots, double price, int slippage, color arrow_color)
+        {
+            return true;
+        }
+
+        public int OrderTicket() => new Random().Next();
+
+
+        /// <summary>
+        /// 平獲利buy單，或平獲利sell單
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="price"></param>
         public void CoverByType(string type, double price)
         {
-            var condition = true;
 
             var node = ZeroNode;
 
-            while (condition)
+            while (node.nextNode != null)
             {
-                var temp = node.nextNode;
+                node = node.nextNode;
 
                 if (type == LinkNode.LONG)
                 {
-                    if (price > temp.Price)
+                    if (price > node.Price)
                     {
-
+                        OrderClose(OrderTicket(), node.Lots, price, 0, clrNONE);
                     }
                 }
                 else
                 {
-                    if (price < temp.Price)
+                    if (price < node.Price)
                     {
-
+                        OrderClose(OrderTicket(), node.Lots, price, 0, clrNONE);
                     }
                 }
+
             }
         }
     }
@@ -101,7 +134,7 @@ namespace labgogo
         /// <summary>
         /// 下單數量/手
         /// </summary>
-        public double Amount;
+        public double Lots;
 
         /// <summary>
         /// 多/空
