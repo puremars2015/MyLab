@@ -417,7 +417,7 @@ void OnTick()
 
     if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() < 0.18)
     {
-        if (Ask - Bid紀錄 > 6)
+        if (Bid紀錄 - Ask > 6)
         {
             bool 是否有獲利空單 = 有獲利空單();
 
@@ -426,7 +426,7 @@ void OnTick()
                 平獲利空單();
                 if (讀取多單數量() < 0.09)
                 {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                     加入買單數量(0.01);
                     紀錄多空價格();
                 }
@@ -457,14 +457,14 @@ void OnTick()
 
                 if (獲利 > 第二遠空單損失())
                 {
-                    double 損失 = 平第二遠多單();
+                    double 損失 = 平第二遠空單();
                     獲利 = 獲利 - 損失;
                     有平空單 = true;
                 }
 
                 if (獲利 > 第三遠空單損失())
                 {
-                    double 損失 = 平第三遠多單();
+                    double 損失 = 平第三遠空單();
                     獲利 = 獲利 - 損失;
                     有平空單 = true;
                 }
@@ -481,14 +481,14 @@ void OnTick()
                 紀錄多空價格();
             }
         }
-
-        if (Ask紀錄 - Bid > 6)
+    
+        if (Bid - Ask紀錄 > 6)
         {
             紀錄多空價格();
 
-            if (所有多單價格小於買價紀錄(6))
+            if (所有多單價格大於買價紀錄(6))
             {
-                OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                 加入買單數量(0.01);
             }
         }
@@ -496,7 +496,7 @@ void OnTick()
 
     if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() == 0.18)
     {
-       if (Bid紀錄 - Ask > 6)
+        if (Bid紀錄 - Ask > 6)
         {
             bool 是否有獲利空單 = 有獲利空單();
 
@@ -505,7 +505,7 @@ void OnTick()
                 平獲利空單();
                 if (讀取多單數量() < 0.09)
                 {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                     加入買單數量(0.01);
                     紀錄多空價格();
                 }
@@ -536,14 +536,14 @@ void OnTick()
 
                 if (獲利 > 第二遠空單損失())
                 {
-                    double 損失 = 平第二遠多單();
+                    double 損失 = 平第二遠空單();
                     獲利 = 獲利 - 損失;
                     有平空單 = true;
                 }
 
                 if (獲利 > 第三遠空單損失())
                 {
-                    double 損失 = 平第三遠多單();
+                    double 損失 = 平第三遠空單();
                     獲利 = 獲利 - 損失;
                     有平空單 = true;
                 }
@@ -560,41 +560,41 @@ void OnTick()
                 紀錄多空價格();
             }
         }
-
-        if (Bid紀錄 - Ask > 6)
+    
+        if (Bid - Ask紀錄 > 6)
         {
-            平獲利空單();
+            平獲利多單();
             紀錄多空價格();
 
-            double 獲利 = 計算本次空單獲利();
+            double 獲利 = 計算本次多單獲利();
 
-            bool 有平多單 = false;
+            bool 有平空單 = false;
 
-            if (獲利 > 最遠多單損失())
+            if (獲利 > 最遠空單損失())
             {
-                double 損失 = 平最遠多單();
+                double 損失 = 平最遠空單();
                 獲利 = 獲利 - 損失;
-                有平多單 = true;
+                有平空單 = true;
             }
 
-            if (獲利 > 第二遠多單損失())
+            if (獲利 > 第二遠空單損失())
             {
-                double 損失 = 平第二遠多單();
+                double 損失 = 平第二遠空單();
                 獲利 = 獲利 - 損失;
-                有平多單 = true;
+                有平空單 = true;
             }
 
-            if (獲利 > 第三遠多單損失())
+            if (獲利 > 第三遠空單損失())
             {
-                double 損失 = 平第三遠多單();
+                double 損失 = 平第三遠空單();
                 獲利 = 獲利 - 損失;
-                有平多單 = true;
+                有平空單 = true;
             }
 
-            if (有平多單)
+            if (有平空單)
             {
-                OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入買單數量(0.01);
+                OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                加入賣單數量(0.01);
             }
         }
     }
