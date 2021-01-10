@@ -191,6 +191,8 @@ void OnDeinit(const int reason)
 {
     //---
 }
+ 
+char status = '';
 
 //https://www.youtube.com/watch?v=tva-XMSbsLc&vl=en
 //+------------------------------------------------------------------+
@@ -198,6 +200,81 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
+    
+    if (讀取多單數量() == 0 && 讀取空單數量() == 0)
+    {
+        if (status != 'A')
+        {
+            紀錄多空價格();
+            status = 'A';
+        }
+    }
+    else if (讀取多單數量() < 0.09 && 讀取空單數量() < 0.09)
+    {
+        if (status != 'B')
+        {
+            紀錄多空價格();
+            status = 'B';
+        }
+    }
+    else if (讀取多單數量() == 0.09 && 所有多單虧損() && 讀取空單數量() < 0.18)
+    {
+        if (status != 'C')
+        {
+            紀錄多空價格();
+            status = 'C';
+        }
+    }
+    else if (讀取多單數量() == 0.09 && 所有多單虧損() && 讀取空單數量() == 0.18)
+    {
+        if (status != 'D')
+        {
+            紀錄多空價格();
+            status = 'D';
+        }
+    }
+    else if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() < 0.18)
+    {
+        if (status != 'E')
+        {
+            紀錄多空價格();
+            status = 'E';
+        }
+    }
+    else if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() == 0.18)
+    {
+        if (status != 'F')
+        {
+            紀錄多空價格();
+            status = 'F';
+        }
+    }
+
+    if (status == 'A')
+    {
+
+    }
+    else if (status == 'B')
+    {
+
+    }
+    else if (status == 'C')
+    {
+
+    }
+    else if (status == 'D')
+    {
+
+    }
+    else if (status == 'E')
+    {
+
+    }
+    else if (status == 'F')
+    {
+
+    }
+    
     //---
     if (讀取多單數量() == 0 && 讀取空單數量() == 0)
     {
