@@ -159,7 +159,16 @@ void 平損失最多的空單直到空單剩下九張()
 {
 }
 
+void 平損失最多的多單直到多單剩下九張()
+{
+}
+
 double 計算本次空單獲利()
+{
+    return 0;
+}
+
+double 計算本次多單獲利()
 {
     return 0;
 }
@@ -172,6 +181,66 @@ double 最遠多單損失()
 double 第二遠多單損失()
 {
     return 0;
+}
+
+double 第三遠多單損失()
+{
+    return 0;
+}
+
+double 最遠空單損失()
+{
+    return 0;
+}
+
+double 第二遠空單損失()
+{
+    return 0;
+}
+
+double 第三遠空單損失()
+{
+    return 0;
+}
+
+double 平最遠多單()
+{
+    return 0;
+}
+
+double 平第二遠多單()
+{
+    return 0;
+}
+
+double 平第三遠多單()
+{
+    return 0;
+}
+
+double 平最遠空單()
+{
+    return 0;
+}
+
+double 平第二遠空單()
+{
+    return 0;
+}
+
+double 平第三遠空單()
+{
+    return 0;
+}
+
+bool 所有空單價格大於賣價紀錄(double 價差)
+{
+    return true;
+}
+
+bool 所有多單價格大於買價紀錄(double 價差)
+{
+    return true;
 }
 
 //+------------------------------------------------------------------+
