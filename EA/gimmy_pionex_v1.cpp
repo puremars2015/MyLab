@@ -191,7 +191,7 @@ void OnDeinit(const int reason)
 {
     //---
 }
- 
+
 char status = '';
 
 //https://www.youtube.com/watch?v=tva-XMSbsLc&vl=en
@@ -200,7 +200,7 @@ char status = '';
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    
+
     if (讀取多單數量() == 0 && 讀取空單數量() == 0)
     {
         if (status != 'A')
@@ -252,42 +252,13 @@ void OnTick()
 
     if (status == 'A')
     {
-
-    }
-    else if (status == 'B')
-    {
-
-    }
-    else if (status == 'C')
-    {
-
-    }
-    else if (status == 'D')
-    {
-
-    }
-    else if (status == 'E')
-    {
-
-    }
-    else if (status == 'F')
-    {
-
-    }
-    
-    //---
-    if (讀取多單數量() == 0 && 讀取空單數量() == 0)
-    {
         OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
         OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
 
         加入買單數量(0.01);
         加入賣單數量(0.01);
-
-        紀錄多空價格();
     }
-
-    if (讀取多單數量() < 0.09 && 讀取空單數量() < 0.09)
+    else if (status == 'B')
     {
         if ((Bid - Ask紀錄) > 6)
         {
@@ -305,8 +276,7 @@ void OnTick()
             紀錄多空價格();
         }
     }
-
-    if (讀取多單數量() == 0.09 && 所有多單虧損() && 讀取空單數量() < 0.18)
+    else if (status == 'C')
     {
         if (Bid - Ask紀錄 > 6)
         {
@@ -384,8 +354,7 @@ void OnTick()
             }
         }
     }
-
-    if (讀取多單數量() == 0.09 && 所有多單虧損() && 讀取空單數量() == 0.18)
+    else if (status == 'D')
     {
         if (Bid - Ask紀錄 > 6)
         {
@@ -489,10 +458,7 @@ void OnTick()
             }
         }
     }
-
-    //反向做
-
-    if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() < 0.18)
+    else if (status == 'E')
     {
         if (Bid紀錄 - Ask > 6)
         {
@@ -558,7 +524,7 @@ void OnTick()
                 紀錄多空價格();
             }
         }
-    
+
         if (Bid - Ask紀錄 > 6)
         {
             紀錄多空價格();
@@ -570,8 +536,7 @@ void OnTick()
             }
         }
     }
-
-    if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() == 0.18)
+    else if (status == 'F')
     {
         if (Bid紀錄 - Ask > 6)
         {
@@ -637,7 +602,7 @@ void OnTick()
                 紀錄多空價格();
             }
         }
-    
+
         if (Bid - Ask紀錄 > 6)
         {
             平獲利多單();
