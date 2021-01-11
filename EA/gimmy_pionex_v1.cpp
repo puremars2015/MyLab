@@ -11,6 +11,23 @@
 #define MAGIC_NUMBER 294381
 #define TRADE_PAIR "XAUUSD"
 
+class 掛單資訊
+{
+public:
+    int 單號;
+    double 價格;
+    掛單資訊()
+    {
+        this.單號 = 0;
+        this.價格 = 0;
+    };
+    掛單資訊(int 單號, double 價格)
+    {
+        this.單號 = 單號;
+        this.價格 = 價格;
+    };
+};
+
 // 賣價(Ask)：金融機構賣給投資人的價格 <<投資人要買債券看Ask
 // 買價(Bid)：金融機構跟投資人買的價格 <<投資人要賣債券看Bid
 
@@ -157,10 +174,50 @@ bool 有獲利空單()
 
 void 平損失最多的空單直到空單剩下九張()
 {
+    掛單資訊 掛單資訊陣列[9];
+
+    for (int i = 0, typeCount = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                bool isSaved = false;
+
+                for (int p = typeCount; p < 9; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        p = 9; //end loop
+                        isSaved = true;
+                        typeCount++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    for (int p = 0, pt = 0; p < 9; p++)
+                    {
+                        if (price == 0)
+                        {
+                            price = 掛單資訊陣列[p].價格;
+                        }
+                        else if (掛單資訊陣列[p].價格 < price)
+                        {
+                            price = 掛單資訊陣列[p].價格;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void 平損失最多的多單直到多單剩下九張()
 {
+    掛單資訊 掛單資訊陣列[9];
 }
 
 double 計算本次空單獲利()
@@ -261,7 +318,7 @@ void OnDeinit(const int reason)
     //---
 }
 
-char status = '';
+char status = ' ';
 
 //https://www.youtube.com/watch?v=tva-XMSbsLc&vl=en
 //+------------------------------------------------------------------+
