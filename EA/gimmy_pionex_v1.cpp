@@ -255,7 +255,7 @@ void 平損失最多的空單直到空單剩下九張()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -301,7 +301,7 @@ void 平損失最多的多單直到多單剩下九張()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -322,12 +322,52 @@ void 平損失最多的多單直到多單剩下九張()
 
 double 計算本次空單獲利()
 {
-    return 0;
+    double 獲利 = 0;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                double 平倉價 = Ask;
+                double 開倉價 = OrderOpenPrice();
+                if (開倉價 > 平倉價)
+                {
+                    if (OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE))
+                    {
+                        獲利 += (開倉價 - 平倉價);
+                    }
+                }
+            }
+        }
+    }
+
+    return 獲利;
 }
 
 double 計算本次多單獲利()
 {
-    return 0;
+    double 獲利 = 0;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                double 平倉價 = Bid;
+                double 開倉價 = OrderOpenPrice();
+                if (平倉價 > 開倉價)
+                {
+                    if (OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE))
+                    {
+                        獲利 += (平倉價 - 開倉價);
+                    }
+                }
+            }
+        }
+    }
+
+    return 獲利;
 }
 
 double 最遠多單損失()
@@ -357,7 +397,7 @@ double 最遠多單損失()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -395,7 +435,7 @@ double 第二遠多單損失()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -433,7 +473,7 @@ double 第三遠多單損失()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -471,7 +511,7 @@ double 最遠空單損失()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -509,7 +549,7 @@ double 第二遠空單損失()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -547,7 +587,7 @@ double 第三遠空單損失()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -585,7 +625,7 @@ double 平最遠多單()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -631,7 +671,7 @@ double 平第二遠多單()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -677,7 +717,7 @@ double 平第三遠多單()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -723,7 +763,7 @@ double 平最遠空單()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -768,7 +808,7 @@ double 平第二遠空單()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -813,7 +853,7 @@ double 平第三遠空單()
 
                 if (!isSaved)
                 {
-                    throw __EXCEPTIONS;
+                    // throw __EXCEPTIONS;
                 }
             }
         }
@@ -831,7 +871,7 @@ double 平第三遠空單()
     return 平倉價 - 掛單資訊陣列[2].價格;
 }
 
-bool 所有空單價格大於賣價紀錄(double 價差)
+bool 所有空單價格距離賣價紀錄大於價差(double 價差)
 {
     for (int i = 0; i < OrdersTotal(); i++)
     {
@@ -839,15 +879,39 @@ bool 所有空單價格大於賣價紀錄(double 價差)
         {
             if (OrderType() == OP_SELL)
             {
-                if (OrderOpenPrice())
+                if (Abs(OrderOpenPrice() - Bid紀錄) < 價差)
+                {
+                    return false;
+                }
             }
         }
     }
+
+    return true;
 }
 
-bool 所有多單價格大於買價紀錄(double 價差)
+bool 所有多單價格距離買價紀錄大於價差(double 價差)
 {
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                if (Abs(OrderOpenPrice() - Ask紀錄) < 價差)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
     return true;
+}
+
+double Abs(double value)
+{
+    return value > 0 ? value : 0 - value;
 }
 
 //+------------------------------------------------------------------+
@@ -1023,7 +1087,7 @@ void OnTick()
         {
             紀錄多空價格();
 
-            if (所有空單價格大於賣價紀錄(6))
+            if (所有空單價格距離賣價紀錄大於價差(6))
             {
                 OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                 加入賣單數量(0.01);
@@ -1205,7 +1269,7 @@ void OnTick()
         {
             紀錄多空價格();
 
-            if (所有多單價格大於買價紀錄(6))
+            if (所有多單價格距離買價紀錄大於價差(6))
             {
                 OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                 加入買單數量(0.01);
