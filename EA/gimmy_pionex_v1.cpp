@@ -172,11 +172,69 @@ bool 有獲利空單()
     return false;
 }
 
+void 空單掛單資訊陣列排序(掛單資訊 掛單資訊陣列[], int 陣列長度)
+{
+    int i, j;
+
+    掛單資訊 temp;
+
+    bool exchanged = true;
+
+    for (i = 0; exchanged && i < 陣列長度 - 1; i++)
+    { /* 外迴圈為排序趟數，len個數進行len-1趟,只有交換過,exchanged值為true才有執行迴圈的必要,否則exchanged值為false不執行迴圈 */
+        exchanged = false;
+        for (j = 0; j < 陣列長度 - 1 - i; j++)
+        { /* 內迴圈為每趟比較的次數，第i趟比較陣列長度-i次  */
+            if (掛單資訊陣列[j].價格 < 掛單資訊陣列[j + 1].價格)
+            { /* 相鄰元素比較，若逆序則互換（升序為左大於右，逆序反之） */
+                temp.價格 = 掛單資訊陣列[j].價格;
+                temp.單號 = 掛單資訊陣列[j].單號;
+                掛單資訊陣列[j].價格 = 掛單資訊陣列[j + 1].價格;
+                掛單資訊陣列[j].單號 = 掛單資訊陣列[j + 1].單號;
+                掛單資訊陣列[j + 1].價格 = temp.價格;
+
+                掛單資訊陣列[j + 1].單號 = temp.單號;
+                exchanged = true; /*只有數值互換過, exchanged才會從false變成true,否則數列已經排序完成,exchanged值仍然為false,沒必要排序 */
+            }
+        }
+    }
+}
+
+void 多單掛單資訊陣列排序(掛單資訊 掛單資訊陣列[], int 陣列長度)
+{
+    int i, j;
+
+    掛單資訊 temp;
+
+    bool exchanged = true;
+
+    for (i = 0; exchanged && i < 陣列長度 - 1; i++)
+    { /* 外迴圈為排序趟數，len個數進行len-1趟,只有交換過,exchanged值為true才有執行迴圈的必要,否則exchanged值為false不執行迴圈 */
+        exchanged = false;
+        for (j = 0; j < 陣列長度 - 1 - i; j++)
+        { /* 內迴圈為每趟比較的次數，第i趟比較陣列長度-i次  */
+            if (掛單資訊陣列[j].價格 > 掛單資訊陣列[j + 1].價格)
+            { /* 相鄰元素比較，若逆序則互換（升序為左大於右，逆序反之） */
+                temp.價格 = 掛單資訊陣列[j].價格;
+                temp.單號 = 掛單資訊陣列[j].單號;
+                掛單資訊陣列[j].價格 = 掛單資訊陣列[j + 1].價格;
+                掛單資訊陣列[j].單號 = 掛單資訊陣列[j + 1].單號;
+                掛單資訊陣列[j + 1].價格 = temp.價格;
+
+                掛單資訊陣列[j + 1].單號 = temp.單號;
+                exchanged = true; /*只有數值互換過, exchanged才會從false變成true,否則數列已經排序完成,exchanged值仍然為false,沒必要排序 */
+            }
+        }
+    }
+}
+
 void 平損失最多的空單直到空單剩下九張()
 {
-    掛單資訊 掛單資訊陣列[9];
+    掛單資訊 掛單資訊陣列[18];
 
-    for (int i = 0, typeCount = 0; i < OrdersTotal(); i++)
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
@@ -184,40 +242,82 @@ void 平損失最多的空單直到空單剩下九張()
             {
                 bool isSaved = false;
 
-                for (int p = typeCount; p < 9; p++)
+                for (int p = length; p < 18 && !isSaved; p++)
                 {
                     if (掛單資訊陣列[p].單號 == 0)
                     {
                         掛單資訊陣列[p].價格 = OrderOpenPrice();
                         掛單資訊陣列[p].單號 = OrderTicket();
-                        p = 9; //end loop
                         isSaved = true;
-                        typeCount++; //掛單資訊儲存進度
+                        length++; //掛單資訊儲存進度
                     }
                 }
 
                 if (!isSaved)
                 {
-                    for (int p = 0, pt = 0; p < 9; p++)
-                    {
-                        if (price == 0)
-                        {
-                            price = 掛單資訊陣列[p].價格;
-                        }
-                        else if (掛單資訊陣列[p].價格 < price)
-                        {
-                            price = 掛單資訊陣列[p].價格;
-                        }
-                    }
+                    throw __EXCEPTIONS;
                 }
             }
+        }
+    }
+
+    空單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    int 需平張數 = length - 9;
+
+    for (int i = 0; i < 需平張數; i++)
+    {
+        if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
+        {
+            OrderClose(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
         }
     }
 }
 
 void 平損失最多的多單直到多單剩下九張()
 {
-    掛單資訊 掛單資訊陣列[9];
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    多單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    int 需平張數 = length - 9;
+
+    for (int i = 0; i < 需平張數; i++)
+    {
+        if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
+        {
+            OrderClose(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
+        }
+    }
 }
 
 double 計算本次空單獲利()
@@ -232,67 +332,517 @@ double 計算本次多單獲利()
 
 double 最遠多單損失()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    多單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    return 掛單資訊陣列[0].價格 - Bid;
 }
 
 double 第二遠多單損失()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    多單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    return 掛單資訊陣列[1].價格 - Bid;
 }
 
 double 第三遠多單損失()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    多單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    return 掛單資訊陣列[2].價格 - Bid;
 }
 
 double 最遠空單損失()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    空單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    return Ask - 掛單資訊陣列[0].價格;
 }
 
 double 第二遠空單損失()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    空單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    return Ask - 掛單資訊陣列[1].價格;
 }
 
 double 第三遠空單損失()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    空單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    return Ask - 掛單資訊陣列[2].價格;
 }
 
 double 平最遠多單()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    多單掛單資訊陣列排序(掛單資訊陣列, length);
+
+
+    double 平倉價 = Bid;
+
+    if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
+    {
+        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+    }
+
+    return 掛單資訊陣列[0].價格 - 平倉價;
 }
 
 double 平第二遠多單()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    多單掛單資訊陣列排序(掛單資訊陣列, length);
+
+
+    double 平倉價 = Bid;
+
+    if (OrderSelect(掛單資訊陣列[1].單號, SELECT_BY_TICKET))
+    {
+        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+    }
+
+    return 掛單資訊陣列[1].價格 - 平倉價;
 }
 
 double 平第三遠多單()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    多單掛單資訊陣列排序(掛單資訊陣列, length);
+
+
+    double 平倉價 = Bid;
+
+    if (OrderSelect(掛單資訊陣列[2].單號, SELECT_BY_TICKET))
+    {
+        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+    }
+
+    return 掛單資訊陣列[2].價格 - 平倉價;
 }
 
 double 平最遠空單()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    空單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    double 平倉價 = Ask;
+
+    if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
+    {
+        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+    }
+
+    return 平倉價 - 掛單資訊陣列[0].價格;
 }
 
 double 平第二遠空單()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    空單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    double 平倉價 = Ask;
+
+    if (OrderSelect(掛單資訊陣列[1].單號, SELECT_BY_TICKET))
+    {
+        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+    }
+
+    return 平倉價 - 掛單資訊陣列[1].價格;
 }
 
 double 平第三遠空單()
 {
-    return 0;
+    掛單資訊 掛單資訊陣列[18];
+
+    int length = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                bool isSaved = false;
+
+                for (int p = length; p < 18 && !isSaved; p++)
+                {
+                    if (掛單資訊陣列[p].單號 == 0)
+                    {
+                        掛單資訊陣列[p].價格 = OrderOpenPrice();
+                        掛單資訊陣列[p].單號 = OrderTicket();
+                        isSaved = true;
+                        length++; //掛單資訊儲存進度
+                    }
+                }
+
+                if (!isSaved)
+                {
+                    throw __EXCEPTIONS;
+                }
+            }
+        }
+    }
+
+    空單掛單資訊陣列排序(掛單資訊陣列, length);
+
+    double 平倉價 = Ask;
+
+    if (OrderSelect(掛單資訊陣列[2].單號, SELECT_BY_TICKET))
+    {
+        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+    }
+
+    return 平倉價 - 掛單資訊陣列[2].價格;
 }
 
 bool 所有空單價格大於賣價紀錄(double 價差)
 {
-    return true;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL)
+            {
+                if (OrderOpenPrice())
+            }
+        }
+    }
 }
 
 bool 所有多單價格大於買價紀錄(double 價差)
