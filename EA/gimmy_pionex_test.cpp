@@ -9,7 +9,7 @@
 #property strict
 
 #define MAGIC_NUMBER 294381
-#define TRADE_PAIR "XAUUSD."
+#define TRADE_PAIR "XAUUSD"
 
 class 掛單資訊
 {
@@ -635,7 +635,6 @@ double 平最遠多單()
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
-
     double 平倉價 = Bid;
 
     if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
@@ -681,7 +680,6 @@ double 平第二遠多單()
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
-
     double 平倉價 = Bid;
 
     if (OrderSelect(掛單資訊陣列[1].單號, SELECT_BY_TICKET))
@@ -726,7 +724,6 @@ double 平第三遠多單()
     }
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
-
 
     double 平倉價 = Bid;
 
@@ -967,7 +964,7 @@ void OnTick()
             status = 'A';
         }
     }
-    else if (讀取多單數量() < 0.09 && 讀取空單數量() < 0.09)
+    else 
     {
         if (status != 'B')
         {
@@ -975,39 +972,7 @@ void OnTick()
             status = 'B';
         }
     }
-    else if (讀取多單數量() == 0.09 && 所有多單虧損() && 讀取空單數量() < 0.18)
-    {
-        if (status != 'C')
-        {
-            紀錄多空價格();
-            status = 'C';
-        }
-    }
-    else if (讀取多單數量() == 0.09 && 所有多單虧損() && 讀取空單數量() == 0.18)
-    {
-        if (status != 'D')
-        {
-            紀錄多空價格();
-            status = 'D';
-        }
-    }
-    else if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() < 0.18)
-    {
-        if (status != 'E')
-        {
-            紀錄多空價格();
-            status = 'E';
-        }
-    }
-    else if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() == 0.18)
-    {
-        if (status != 'F')
-        {
-            紀錄多空價格();
-            status = 'F';
-        }
-    }
-
+    
     if (status == 'A')
     {
         OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
@@ -1032,370 +997,6 @@ void OnTick()
             OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
             加入多單數量(0.01);
             紀錄多空價格();
-        }
-    }
-    else if (status == 'C')
-    {
-        if (Bid - Ask紀錄 > 單網格寬度)
-        {
-            bool 是否有獲利多單 = 有獲利多單();
-
-            if (是否有獲利多單)
-            {
-                平獲利多單();
-                if (讀取空單數量() < 0.09)
-                {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
-                    紀錄多空價格();
-                }
-                else if (讀取空單數量() > 0.09)
-                {
-                    平損失最多的空單直到空單剩下九張();
-                    紀錄多空價格();
-                }
-            }
-
-            bool 是否有獲利空單 = 有獲利空單();
-
-            if (是否有獲利空單)
-            {
-                平獲利空單();
-                紀錄多空價格();
-
-                double 獲利 = 計算本次空單獲利();
-
-                bool 有平多單 = false;
-
-                if (獲利 > 最遠多單損失())
-                {
-                    double 損失 = 平最遠多單();
-                    獲利 = 獲利 - 損失;
-                    有平多單 = true;
-                }
-
-                if (獲利 > 第二遠多單損失())
-                {
-                    double 損失 = 平第二遠多單();
-                    獲利 = 獲利 - 損失;
-                    有平多單 = true;
-                }
-
-                if (獲利 > 第三遠多單損失())
-                {
-                    double 損失 = 平第三遠多單();
-                    獲利 = 獲利 - 損失;
-                    有平多單 = true;
-                }
-
-                if (有平多單)
-                {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
-                }
-            }
-
-            if (!是否有獲利多單 && !是否有獲利空單)
-            {
-                紀錄多空價格();
-            }
-        }
-
-        if (Bid紀錄 - Ask > 單網格寬度)
-        {
-            紀錄多空價格();
-
-            if (所有空單價格距離賣價紀錄大於價差(單網格寬度))
-            {
-                OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入空單數量(0.01);
-            }
-        }
-    }
-    else if (status == 'D')
-    {
-        if (Bid - Ask紀錄 > 單網格寬度)
-        {
-            bool 是否有獲利多單 = 有獲利多單();
-
-            if (是否有獲利多單)
-            {
-                平獲利多單();
-                if (讀取空單數量() < 0.09)
-                {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
-                    紀錄多空價格();
-                }
-                else if (讀取空單數量() > 0.09)
-                {
-                    平損失最多的空單直到空單剩下九張();
-                    紀錄多空價格();
-                }
-            }
-
-            bool 是否有獲利空單 = 有獲利空單();
-
-            if (是否有獲利空單)
-            {
-                平獲利空單();
-                紀錄多空價格();
-
-                double 獲利 = 計算本次空單獲利();
-
-                bool 有平多單 = false;
-
-                if (獲利 > 最遠多單損失())
-                {
-                    double 損失 = 平最遠多單();
-                    獲利 = 獲利 - 損失;
-                    有平多單 = true;
-                }
-
-                if (獲利 > 第二遠多單損失())
-                {
-                    double 損失 = 平第二遠多單();
-                    獲利 = 獲利 - 損失;
-                    有平多單 = true;
-                }
-
-                if (獲利 > 第三遠多單損失())
-                {
-                    double 損失 = 平第三遠多單();
-                    獲利 = 獲利 - 損失;
-                    有平多單 = true;
-                }
-
-                if (有平多單)
-                {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
-                }
-            }
-
-            if (!是否有獲利多單 && !是否有獲利空單)
-            {
-                紀錄多空價格();
-            }
-        }
-
-        if (Bid紀錄 - Ask > 單網格寬度)
-        {
-            平獲利空單();
-            紀錄多空價格();
-
-            double 獲利 = 計算本次空單獲利();
-
-            bool 有平多單 = false;
-
-            if (獲利 > 最遠多單損失())
-            {
-                double 損失 = 平最遠多單();
-                獲利 = 獲利 - 損失;
-                有平多單 = true;
-            }
-
-            if (獲利 > 第二遠多單損失())
-            {
-                double 損失 = 平第二遠多單();
-                獲利 = 獲利 - 損失;
-                有平多單 = true;
-            }
-
-            if (獲利 > 第三遠多單損失())
-            {
-                double 損失 = 平第三遠多單();
-                獲利 = 獲利 - 損失;
-                有平多單 = true;
-            }
-
-            if (有平多單)
-            {
-                OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入多單數量(0.01);
-            }
-        }
-    }
-    else if (status == 'E')
-    {
-        if (Bid紀錄 - Ask > 單網格寬度)
-        {
-            bool 是否有獲利空單 = 有獲利空單();
-
-            if (是否有獲利空單)
-            {
-                平獲利空單();
-                if (讀取多單數量() < 0.09)
-                {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
-                    紀錄多空價格();
-                }
-                else if (讀取多單數量() > 0.09)
-                {
-                    平損失最多的多單直到多單剩下九張();
-                    紀錄多空價格();
-                }
-            }
-
-            bool 是否有獲利多單 = 有獲利多單();
-
-            if (是否有獲利多單)
-            {
-                平獲利多單();
-                紀錄多空價格();
-
-                double 獲利 = 計算本次多單獲利();
-
-                bool 有平空單 = false;
-
-                if (獲利 > 最遠空單損失())
-                {
-                    double 損失 = 平最遠空單();
-                    獲利 = 獲利 - 損失;
-                    有平空單 = true;
-                }
-
-                if (獲利 > 第二遠空單損失())
-                {
-                    double 損失 = 平第二遠空單();
-                    獲利 = 獲利 - 損失;
-                    有平空單 = true;
-                }
-
-                if (獲利 > 第三遠空單損失())
-                {
-                    double 損失 = 平第三遠空單();
-                    獲利 = 獲利 - 損失;
-                    有平空單 = true;
-                }
-
-                if (有平空單)
-                {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
-                }
-            }
-
-            if (!是否有獲利多單 && !是否有獲利空單)
-            {
-                紀錄多空價格();
-            }
-        }
-
-        if (Bid - Ask紀錄 > 單網格寬度)
-        {
-            紀錄多空價格();
-
-            if (所有多單價格距離買價紀錄大於價差(單網格寬度))
-            {
-                OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入多單數量(0.01);
-            }
-        }
-    }
-    else if (status == 'F')
-    {
-        if (Bid紀錄 - Ask > 單網格寬度)
-        {
-            bool 是否有獲利空單 = 有獲利空單();
-
-            if (是否有獲利空單)
-            {
-                平獲利空單();
-                if (讀取多單數量() < 0.09)
-                {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
-                    紀錄多空價格();
-                }
-                else if (讀取多單數量() > 0.09)
-                {
-                    平損失最多的多單直到多單剩下九張();
-                    紀錄多空價格();
-                }
-            }
-
-            bool 是否有獲利多單 = 有獲利多單();
-
-            if (是否有獲利多單)
-            {
-                平獲利多單();
-                紀錄多空價格();
-
-                double 獲利 = 計算本次多單獲利();
-
-                bool 有平空單 = false;
-
-                if (獲利 > 最遠空單損失())
-                {
-                    double 損失 = 平最遠空單();
-                    獲利 = 獲利 - 損失;
-                    有平空單 = true;
-                }
-
-                if (獲利 > 第二遠空單損失())
-                {
-                    double 損失 = 平第二遠空單();
-                    獲利 = 獲利 - 損失;
-                    有平空單 = true;
-                }
-
-                if (獲利 > 第三遠空單損失())
-                {
-                    double 損失 = 平第三遠空單();
-                    獲利 = 獲利 - 損失;
-                    有平空單 = true;
-                }
-
-                if (有平空單)
-                {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
-                }
-            }
-
-            if (!是否有獲利多單 && !是否有獲利空單)
-            {
-                紀錄多空價格();
-            }
-        }
-
-        if (Bid - Ask紀錄 > 單網格寬度)
-        {
-            平獲利多單();
-            紀錄多空價格();
-
-            double 獲利 = 計算本次多單獲利();
-
-            bool 有平空單 = false;
-
-            if (獲利 > 最遠空單損失())
-            {
-                double 損失 = 平最遠空單();
-                獲利 = 獲利 - 損失;
-                有平空單 = true;
-            }
-
-            if (獲利 > 第二遠空單損失())
-            {
-                double 損失 = 平第二遠空單();
-                獲利 = 獲利 - 損失;
-                有平空單 = true;
-            }
-
-            if (獲利 > 第三遠空單損失())
-            {
-                double 損失 = 平第三遠空單();
-                獲利 = 獲利 - 損失;
-                有平空單 = true;
-            }
-
-            if (有平空單)
-            {
-                OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入空單數量(0.01);
-            }
         }
     }
 }
