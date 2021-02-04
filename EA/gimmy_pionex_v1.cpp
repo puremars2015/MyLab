@@ -8,8 +8,11 @@
 #property version "1.00"
 #property strict
 
-#define MAGIC_NUMBER 294381
 #define TRADE_PAIR "XAUUSD."
+
+
+// 外部輸入參數
+input int MAGIC_NUMBER;
 
 class 掛單資訊
 {
@@ -68,22 +71,35 @@ void 紀錄多空價格()
     Ask紀錄 = Ask;
 }
 
+bool 多單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
+{
+    bool isClosed = OrderClose(ticket, lots, price, slippage, arrow_color);
+    if (isClosed)
+    {
+        加入多單數量(-lots);
+    }
+}
+
+bool 空單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
+{
+    bool isClosed = OrderClose(ticket, lots, price, slippage, arrow_color);
+    if (isClosed)
+    {
+        加入空單數量(-lots);
+    }
+}
+
 void 平獲利多單()
 {
     for (int i = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && Bid > OrderOpenPrice())
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && Bid > OrderOpenPrice())
             {
                 double lots = OrderLots();
                 double price = Bid;
-                bool isClosed = OrderClose(OrderTicket(), lots, price, 0, clrNONE);
-
-                if (isClosed)
-                {
-                    加入多單數量(-lots);
-                }
+                多單平倉(OrderTicket(), lots, price, 0, clrNONE);
             }
         }
     }
@@ -95,16 +111,11 @@ void 平獲利空單()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderOpenPrice() > Ask)
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > Ask)
             {
                 double lots = OrderLots();
                 double price = Ask;
-                bool isClosed = OrderClose(OrderTicket(), lots, price, 0, clrNONE);
-
-                if (isClosed)
-                {
-                    加入空單數量(-lots);
-                }
+                空單平倉(OrderTicket(), lots, price, 0, clrNONE);
             }
         }
     }
@@ -116,7 +127,7 @@ bool 所有多單虧損()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && Bid > OrderOpenPrice())
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && Bid > OrderOpenPrice())
             {
                 return false;
             }
@@ -132,7 +143,7 @@ bool 所有空單虧損()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderOpenPrice() > Ask)
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > Ask)
             {
                 return false;
             }
@@ -148,7 +159,7 @@ bool 有獲利多單()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && Bid > OrderOpenPrice())
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && Bid > OrderOpenPrice())
             {
                 return true;
             }
@@ -164,7 +175,7 @@ bool 有獲利空單()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderOpenPrice() > Ask)
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > Ask)
             {
                 return true;
             }
@@ -244,7 +255,7 @@ void 平損失最多的空單直到空單剩下九張()
     {
         if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
         {
-            OrderClose(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
+            空單平倉(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
         }
     }
 }
@@ -263,7 +274,7 @@ void 平損失最多的多單直到多單剩下九張()
     {
         if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
         {
-            OrderClose(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
+            多單平倉(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
         }
     }
 }
@@ -275,13 +286,13 @@ double 計算本次空單獲利()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL)
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 double 平倉價 = Ask;
                 double 開倉價 = OrderOpenPrice();
                 if (開倉價 > 平倉價)
                 {
-                    if (OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE))
+                    if (空單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE))
                     {
                         獲利 += (開倉價 - 平倉價);
                     }
@@ -300,13 +311,13 @@ double 計算本次多單獲利()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY)
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 double 平倉價 = Bid;
                 double 開倉價 = OrderOpenPrice();
                 if (平倉價 > 開倉價)
                 {
-                    if (OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE))
+                    if (多單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE))
                     {
                         獲利 += (平倉價 - 開倉價);
                     }
@@ -330,7 +341,7 @@ int 掛單陣列給值(掛單資訊 &掛單資訊陣列[], int orderType)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == orderType)
+            if (OrderType() == orderType && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 掛單資訊陣列[pointer].價格 = OrderOpenPrice();
                 掛單資訊陣列[pointer].單號 = OrderTicket();
@@ -422,7 +433,7 @@ double 平最遠多單()
 
     if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
     {
-        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+        多單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
     }
 
     return 掛單資訊陣列[0].價格 - 平倉價;
@@ -440,7 +451,7 @@ double 平第二遠多單()
 
     if (OrderSelect(掛單資訊陣列[1].單號, SELECT_BY_TICKET))
     {
-        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+        多單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
     }
 
     return 掛單資訊陣列[1].價格 - 平倉價;
@@ -458,7 +469,7 @@ double 平第三遠多單()
 
     if (OrderSelect(掛單資訊陣列[2].單號, SELECT_BY_TICKET))
     {
-        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+        多單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
     }
 
     return 掛單資訊陣列[2].價格 - 平倉價;
@@ -476,7 +487,7 @@ double 平最遠空單()
 
     if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
     {
-        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+        空單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
     }
 
     return 平倉價 - 掛單資訊陣列[0].價格;
@@ -494,7 +505,7 @@ double 平第二遠空單()
 
     if (OrderSelect(掛單資訊陣列[1].單號, SELECT_BY_TICKET))
     {
-        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+        空單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
     }
 
     return 平倉價 - 掛單資訊陣列[1].價格;
@@ -512,7 +523,7 @@ double 平第三遠空單()
 
     if (OrderSelect(掛單資訊陣列[2].單號, SELECT_BY_TICKET))
     {
-        OrderClose(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
+        空單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
     }
 
     return 平倉價 - 掛單資訊陣列[2].價格;
@@ -524,7 +535,7 @@ bool 所有空單價格距離賣價紀錄大於價差(double 價差)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL)
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 if (Abs(OrderOpenPrice() - Bid紀錄) < 價差)
                 {
@@ -543,7 +554,7 @@ bool 所有多單價格距離買價紀錄大於價差(double 價差)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY)
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 if (Abs(OrderOpenPrice() - Ask紀錄) < 價差)
                 {
@@ -561,6 +572,8 @@ double Abs(double value)
     return value > 0 ? value : 0 - value;
 }
 
+void 
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -572,12 +585,12 @@ int OnInit()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY)
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 加入多單數量(OrderLots());
             }
 
-            if (OrderType() == OP_SELL)
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 加入空單數量(OrderLots());
             }
