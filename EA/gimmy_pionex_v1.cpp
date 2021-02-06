@@ -10,6 +10,21 @@
 
 #define TRADE_PAIR "XAUUSD."
 
+/** 
+ * 
+ *    string filename = StringConcatenate("sample-",Year(),"-",Month(),"-",Day(),"-log",Hour(),".csv");
+
+      int    filehandle=FileOpen(filename,FILE_CSV|FILE_READ | FILE_WRITE);
+   if(filehandle!=INVALID_HANDLE)
+     {
+      FileSeek(filehandle, 0, SEEK_END);
+      //FileWrite(filehandle,TimeCurrent(),Symbol(), EnumToString(ENUM_TIMEFRAMES(_Period)));
+      FileWrite(filehandle,filename);
+      FileClose(filehandle);
+      Print("FileOpen OK");
+     }
+   else Print("Operation FileOpen failed, error ",GetLastError());
+*/
 
 // 外部輸入參數
 input int MAGIC_NUMBER;
