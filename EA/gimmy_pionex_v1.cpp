@@ -10,22 +10,6 @@
 
 #define TRADE_PAIR "XAUUSD."
 
-/** 
- * 
- *    string filename = StringConcatenate("sample-",Year(),"-",Month(),"-",Day(),"-log",Hour(),".csv");
-
-      int    filehandle=FileOpen(filename,FILE_CSV|FILE_READ | FILE_WRITE);
-   if(filehandle!=INVALID_HANDLE)
-     {
-      FileSeek(filehandle, 0, SEEK_END);
-      //FileWrite(filehandle,TimeCurrent(),Symbol(), EnumToString(ENUM_TIMEFRAMES(_Period)));
-      FileWrite(filehandle,filename);
-      FileClose(filehandle);
-      Print("FileOpen OK");
-     }
-   else Print("Operation FileOpen failed, error ",GetLastError());
-*/
-
 // 外部輸入參數
 input int MAGIC_NUMBER;
 
@@ -59,6 +43,32 @@ double 最高做空價 = 0;
 
 double 買單數量 = 0;
 double 賣單數量 = 0;
+
+/** 
+ * 依照時間設定檔案名稱
+ * 回傳檔案的reference
+*/
+int 啟動紀錄交易資料()
+{
+    string filename = StringConcatenate("sample-", Year(), "-", Month(), "-", Day(), "-log", Hour(), ".csv");
+    int 檔案 = FileOpen(filename, FILE_CSV | FILE_READ | FILE_WRITE);
+
+    return 檔案;
+}
+
+void 紀錄交易資料(int 檔案, string 訊息)
+{
+    if (檔案 != INVALID_HANDLE)
+    {
+        FileSeek(檔案, 0, SEEK_END);
+        FileWrite(檔案, 訊息);
+        FileClose(檔案);
+    }
+    else
+    {
+        Print("紀錄交易資料失敗!!", GetLastError());
+    }
+}
 
 double 讀取多單數量()
 {
@@ -401,8 +411,6 @@ double 第三遠多單損失()
     return 掛單資訊陣列[2].價格 - Bid;
 }
 
-
-
 double 最遠空單損失()
 {
     掛單資訊 掛單資訊陣列[18];
@@ -587,12 +595,13 @@ double Abs(double value)
     return value > 0 ? value : 0 - value;
 }
 
-void 
+void
 
-//+------------------------------------------------------------------+
-//| Expert initialization function                                   |
-//+------------------------------------------------------------------+
-int OnInit()
+    //+------------------------------------------------------------------+
+    //| Expert initialization function                                   |
+    //+------------------------------------------------------------------+
+    int
+    OnInit()
 {
     //---
 
