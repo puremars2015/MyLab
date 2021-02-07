@@ -9,7 +9,15 @@
 #property strict
 
 #define TRADE_PAIR "XAUUSD."
-
+/*
+  printf(StringConcatenate(
+      TimeYear(TimeLocal()), "-", 
+      TimeMonth(TimeLocal()), "-", 
+      TimeDay(TimeLocal()), " ", 
+      TimeHour(TimeLocal()), ":",
+      TimeMinute(TimeLocal()), ":",
+      TimeSeconds(TimeLocal()),".csv"));
+      */
 // 外部輸入參數
 input int MAGIC_NUMBER;
 
