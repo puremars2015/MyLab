@@ -52,6 +52,8 @@ double 最高做空價 = 0;
 double 買單數量 = 0;
 double 賣單數量 = 0;
 
+int 交易紀錄檔案 = 0;
+
 /** 
  * 依照時間設定檔案名稱
  * 回傳檔案的reference
@@ -70,11 +72,22 @@ void 紀錄交易資料(int 檔案, string 訊息)
     {
         FileSeek(檔案, 0, SEEK_END);
         FileWrite(檔案, 訊息);
-        FileClose(檔案);
     }
     else
     {
         Print("紀錄交易資料失敗!!", GetLastError());
+    }
+}
+
+void 結束紀錄交易資料(int 檔案)
+{
+    if (檔案 != INVALID_HANDLE)
+    {
+        FileClose(檔案);
+    }
+    else
+    {
+        Print("結束紀錄交易資料失敗!!", GetLastError());
     }
 }
 
@@ -603,13 +616,11 @@ double Abs(double value)
     return value > 0 ? value : 0 - value;
 }
 
-void
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
 
-    //+------------------------------------------------------------------+
-    //| Expert initialization function                                   |
-    //+------------------------------------------------------------------+
-    int
-    OnInit()
+int OnInit()
 {
     //---
 
