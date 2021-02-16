@@ -31,10 +31,10 @@ public:
         this.單號 = 0;
         this.價格 = 0;
     };
-    掛單資訊(int 單號, double 價格)
+    掛單資訊(int _單號, double _價格)
     {
-        this.單號 = 單號;
-        this.價格 = 價格;
+        this.單號 = _單號;
+        this.價格 = _價格;
     };
 };
 
@@ -125,6 +125,7 @@ bool 多單平倉(int ticket, double lots, double price, int slippage, color arr
     {
         加入多單數量(-lots);
     }
+    return isClosed;
 }
 
 bool 空單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
@@ -134,6 +135,7 @@ bool 空單平倉(int ticket, double lots, double price, int slippage, color arr
     {
         加入空單數量(-lots);
     }
+    return isClosed;
 }
 
 void 平獲利多單()
@@ -612,6 +614,64 @@ bool 所有多單價格距離買價紀錄大於價差(double 價差)
     return true;
 }
 
+double 多單最低價()
+{
+    bool isWrited = false;
+    double lowest = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            {
+                double tp = OrderOpenPrice();
+
+                if (!isWrited)
+                {
+                    lowest = tp;
+                    isWrited = true;
+                }
+                else
+                {
+                    lowest = tp < lowest ? tp : lowest;
+                }
+            }
+        }
+    }
+
+    return lowest;
+}
+
+double 空單最高價()
+{
+    bool isWrited = false;
+    double highest = 0;
+
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            {
+                double tp = OrderOpenPrice();
+
+                if (!isWrited)
+                {
+                    highest = tp;
+                    isWrited = true;
+                }
+                else
+                {
+                    highest = tp > highest ? tp : highest;
+                }
+            }
+        }
+    }
+
+    return highest;
+}
+
 double Abs(double value)
 {
     return value > 0 ? value : 0 - value;
@@ -799,7 +859,7 @@ void OnTick()
 
             if (!是否有獲利多單 && !是否有獲利空單)
             {
-                if (Bid > (空單最高價() + 單網格距離))
+                if (Bid > (空單最高價() + 單網格寬度))
                 {
                     OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                 }
@@ -808,11 +868,11 @@ void OnTick()
         }
 
         //單網格寬度改為2
-        if (Bid紀錄 - Ask > 單網格寬度)
+        if (Bid紀錄 - Ask > 小單網格寬度)
         {
             紀錄多空價格();
 
-            if (所有空單價格距離賣價紀錄大於價差(單網格寬度))
+            if (所有空單價格距離賣價紀錄大於價差(小單網格寬度))
             {
                 OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                 加入空單數量(0.01);
@@ -891,7 +951,7 @@ void OnTick()
         }
 
         //單網格寬度2
-        if (Bid紀錄 - Ask > 單網格寬度)
+        if (Bid紀錄 - Ask > 小單網格寬度)
         {
             平獲利空單();
             紀錄多空價格();
@@ -991,7 +1051,7 @@ void OnTick()
 
             if (!是否有獲利多單 && !是否有獲利空單)
             {
-                if (多單最低價() > (Ask + 單網格距離))
+                if (多單最低價() > (Ask + 單網格寬度))
                 {
                     OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                 }
@@ -1000,11 +1060,11 @@ void OnTick()
         }
 
         //單網格寬度2
-        if (Bid - Ask紀錄 > 單網格寬度)
+        if (Bid - Ask紀錄 > 小單網格寬度)
         {
             紀錄多空價格();
 
-            if (所有多單價格距離買價紀錄大於價差(單網格寬度))
+            if (所有多單價格距離買價紀錄大於價差(小單網格寬度))
             {
                 OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
                 加入多單數量(0.01);
@@ -1083,7 +1143,7 @@ void OnTick()
         }
 
         //單網格寬度2
-        if (Bid - Ask紀錄 > 單網格寬度)
+        if (Bid - Ask紀錄 > 小單網格寬度)
         {
             平獲利多單();
             紀錄多空價格();
