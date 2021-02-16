@@ -53,42 +53,59 @@ double 最高做空價 = 0;
 double 買單數量 = 0;
 double 賣單數量 = 0;
 
-int 交易紀錄檔案 = 0;
+string LOG檔名 = "";
+int LOG檔案 = 0;
 
 /** 
  * 依照時間設定檔案名稱
  * 回傳檔案的reference
 */
-int 啟動紀錄交易資料()
+void 初始設定LOG檔()
 {
-    string filename = StringConcatenate("sample-", Year(), "-", Month(), "-", Day(), "-log", Hour(), ".csv");
-    int 檔案 = FileOpen(filename, FILE_CSV | FILE_READ | FILE_WRITE);
-
-    return 檔案;
+    LOG檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
+    LOG檔案 = FileOpen(LOG檔名, FILE_CSV | FILE_READ | FILE_WRITE);
 }
 
-void 紀錄交易資料(int 檔案, string 訊息)
+void 檢查LOG檔()
 {
-    if (檔案 != INVALID_HANDLE)
+    string LOG新檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
+    if (LOG檔名 != LOG新檔名)
     {
-        FileSeek(檔案, 0, SEEK_END);
-        FileWrite(檔案, 訊息);
+        if (LOG檔案 != INVALID_HANDLE)
+        {
+            FileClose(LOG檔案);
+        }
+        else
+        {
+            Print("LOG檔名檢查更新失敗", GetLastError());
+        }
+
+        LOG檔案 = FileOpen(LOG新檔名, FILE_CSV | FILE_READ | FILE_WRITE);
+    }
+}
+
+void 紀錄LOG(string 訊息)
+{
+    if (LOG檔案 != INVALID_HANDLE)
+    {
+        FileSeek(LOG檔案, 0, SEEK_END);
+        FileWrite(LOG檔案, 訊息);
     }
     else
     {
-        Print("紀錄交易資料失敗!!", GetLastError());
+        Print("紀錄LOG失敗!!", GetLastError());
     }
 }
 
-void 結束紀錄交易資料(int 檔案)
+void 關閉LOG檔()
 {
-    if (檔案 != INVALID_HANDLE)
+    if (LOG檔案 != INVALID_HANDLE)
     {
-        FileClose(檔案);
+        FileClose(LOG檔案);
     }
     else
     {
-        Print("結束紀錄交易資料失敗!!", GetLastError());
+        Print("關閉LOG檔失敗!!", GetLastError());
     }
 }
 
