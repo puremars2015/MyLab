@@ -21,6 +21,8 @@
 // 外部輸入參數
 input int MAGIC_NUMBER;
 
+double 單位手數 = 0.01;
+
 class 掛單資訊
 {
 public:
@@ -799,7 +801,7 @@ void OnTick()
             紀錄LOG(訊息);
         }
     }
-    else if (讀取多單數量() < 0.09 && 讀取空單數量() < 0.09)
+    else if (讀取多單數量() < (9 * 單位手數) && 讀取空單數量() < (9 * 單位手數))
     {
         if (status != 'B')
         {
@@ -810,7 +812,7 @@ void OnTick()
             紀錄LOG(訊息);
         }
     }
-    else if (讀取多單數量() == 0.09 && 所有多單虧損() && 讀取空單數量() < 0.18)
+    else if (讀取多單數量() == (9 * 單位手數) && 所有多單虧損() && 讀取空單數量() < (18 * 單位手數))
     {
         if (status != 'C')
         {
@@ -821,7 +823,7 @@ void OnTick()
             紀錄LOG(訊息);
         }
     }
-    else if (讀取多單數量() == 0.09 && 所有多單虧損() && 讀取空單數量() == 0.18)
+    else if (讀取多單數量() == (9 * 單位手數) && 所有多單虧損() && 讀取空單數量() == (18 * 單位手數))
     {
         if (status != 'D')
         {
@@ -832,7 +834,7 @@ void OnTick()
             紀錄LOG(訊息);
         }
     }
-    else if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() < 0.18)
+    else if (讀取空單數量() == (9 * 單位手數) && 所有空單虧損() && 讀取多單數量() < (18 * 單位手數))
     {
         if (status != 'E')
         {
@@ -843,7 +845,7 @@ void OnTick()
             紀錄LOG(訊息);
         }
     }
-    else if (讀取空單數量() == 0.09 && 所有空單虧損() && 讀取多單數量() == 0.18)
+    else if (讀取空單數量() == (9 * 單位手數) && 所有空單虧損() && 讀取多單數量() == (18 * 單位手數))
     {
         if (status != 'F')
         {
@@ -857,11 +859,11 @@ void OnTick()
 
     if (status == 'A')
     {
-        OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-        OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+        OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+        OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
 
-        加入多單數量(0.01);
-        加入空單數量(0.01);
+        加入多單數量(單位手數);
+        加入空單數量(單位手數);
     }
     else if (status == 'B')
     {
@@ -871,8 +873,8 @@ void OnTick()
             紀錄LOG(訊息);
 
             平獲利多單();
-            OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-            加入空單數量(0.01);
+            OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+            加入空單數量(單位手數);
             紀錄多空價格();
         }
 
@@ -882,8 +884,8 @@ void OnTick()
             紀錄LOG(訊息);
 
             平獲利空單();
-            OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-            加入多單數量(0.01);
+            OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+            加入多單數量(單位手數);
             紀錄多空價格();
         }
     }
@@ -903,13 +905,13 @@ void OnTick()
                 紀錄LOG(訊息);
 
                 平獲利多單();
-                if (讀取空單數量() < 0.09)
+                if (讀取空單數量() < (9 * 單位手數))
                 {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入空單數量(單位手數);
                     紀錄多空價格();
                 }
-                else if (讀取空單數量() > 0.09)
+                else if (讀取空單數量() > (9 * 單位手數))
                 {
                     平損失最多的空單直到空單剩下九張();
                     紀錄多空價格();
@@ -954,8 +956,8 @@ void OnTick()
 
                 if (有平多單)
                 {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入多單數量(單位手數);
                 }
             }
 
@@ -966,8 +968,8 @@ void OnTick()
 
                 if (Bid > (空單最高價() + 單網格寬度))
                 {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入空單數量(單位手數);
                 }
                 紀錄多空價格();
             }
@@ -983,8 +985,8 @@ void OnTick()
 
             if (所有空單價格距離賣價紀錄大於價差(小單網格寬度))
             {
-                OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入空單數量(0.01);
+                OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                加入空單數量(單位手數);
             }
         }
     }
@@ -1003,13 +1005,13 @@ void OnTick()
                 紀錄LOG(訊息);
 
                 平獲利多單();
-                if (讀取空單數量() < 0.09)
+                if (讀取空單數量() < (9 * 單位手數))
                 {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入空單數量(單位手數);
                     紀錄多空價格();
                 }
-                else if (讀取空單數量() > 0.09)
+                else if (讀取空單數量() > (9 * 單位手數))
                 {
                     平損失最多的空單直到空單剩下九張();
                     紀錄多空價格();
@@ -1053,8 +1055,8 @@ void OnTick()
 
                 if (有平多單)
                 {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入多單數量(單位手數);
                 }
             }
 
@@ -1063,7 +1065,7 @@ void OnTick()
                 string 訊息 = StringConcatenate("D區間，發生上漲，沒有獲利多空單，時間：", TimeCurrent());
                 紀錄LOG(訊息);
 
-                if (讀取空單數量() > 0.09)
+                if (讀取空單數量() > (9 * 單位手數))
                 {
                     平損失最多的空單直到空單剩下九張();
                 }
@@ -1107,8 +1109,8 @@ void OnTick()
 
             if (有平多單)
             {
-                OrderSend(TRADE_PAIR, OP_BUY, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入多單數量(0.01);
+                OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                加入多單數量(單位手數);
             }
         }
     }
@@ -1127,13 +1129,13 @@ void OnTick()
                 紀錄LOG(訊息);
 
                 平獲利空單();
-                if (讀取多單數量() < 0.09)
+                if (讀取多單數量() < (9 * 單位手數))
                 {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入多單數量(單位手數);
                     紀錄多空價格();
                 }
-                else if (讀取多單數量() > 0.09)
+                else if (讀取多單數量() > (9 * 單位手數))
                 {
                     平損失最多的多單直到多單剩下九張();
                     紀錄多空價格();
@@ -1177,8 +1179,8 @@ void OnTick()
 
                 if (有平空單)
                 {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入空單數量(單位手數);
                 }
             }
 
@@ -1189,8 +1191,8 @@ void OnTick()
 
                 if (多單最低價() > (Ask + 單網格寬度))
                 {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入多單數量(單位手數);
                 }
                 紀錄多空價格();
             }
@@ -1206,8 +1208,8 @@ void OnTick()
 
             if (所有多單價格距離買價紀錄大於價差(小單網格寬度))
             {
-                OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入多單數量(0.01);
+                OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                加入多單數量(單位手數);
             }
         }
     }
@@ -1226,13 +1228,13 @@ void OnTick()
                 紀錄LOG(訊息);
 
                 平獲利空單();
-                if (讀取多單數量() < 0.09)
+                if (讀取多單數量() < (9 * 單位手數))
                 {
-                    OrderSend(TRADE_PAIR, OP_BUY, 0.01, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入多單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入多單數量(單位手數);
                     紀錄多空價格();
                 }
-                else if (讀取多單數量() > 0.09)
+                else if (讀取多單數量() > (9 * 單位手數))
                 {
                     平損失最多的多單直到多單剩下九張();
                     紀錄多空價格();
@@ -1276,8 +1278,8 @@ void OnTick()
 
                 if (有平空單)
                 {
-                    OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    加入空單數量(0.01);
+                    OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    加入空單數量(單位手數);
                 }
             }
 
@@ -1286,7 +1288,7 @@ void OnTick()
                 string 訊息 = StringConcatenate("F區間，發生下跌，沒有獲利多空單，時間：", TimeCurrent());
                 紀錄LOG(訊息);
 
-                if (讀取多單數量() > 0.09)
+                if (讀取多單數量() > (9 * 單位手數))
                 {
                     平損失最多的多單直到多單剩下九張();
                 }
@@ -1330,8 +1332,8 @@ void OnTick()
 
             if (有平空單)
             {
-                OrderSend(TRADE_PAIR, OP_SELL, 0.01, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                加入空單數量(0.01);
+                OrderSend(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                加入空單數量(單位手數);
             }
         }
     }
