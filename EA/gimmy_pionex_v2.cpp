@@ -719,6 +719,8 @@ void 檢查LOG檔()
 
 void 紀錄LOG(string 訊息)
 {
+    Print(訊息);
+
     if (LOG檔案 != INVALID_HANDLE)
     {
         FileSeek(LOG檔案, 0, SEEK_END);
