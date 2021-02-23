@@ -101,6 +101,7 @@ void 更新價位()
 {
     Bid紀錄 = Bid;
     Ask紀錄 = Ask;
+    紀錄LOG(StringConcatenate("更新價位至Bid:[", Bid紀錄, "]", "Ask:[", Ask紀錄, "]"));
 }
 
 bool 多單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
@@ -719,6 +720,8 @@ void 檢查LOG檔()
 
 void 紀錄LOG(string 訊息)
 {
+    訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER);
+
     Print(訊息);
 
     if (LOG檔案 != INVALID_HANDLE)
