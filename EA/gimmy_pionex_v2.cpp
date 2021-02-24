@@ -87,13 +87,13 @@ double 讀取空單數量()
 
 void 記錄多單下單資訊(double 數量)
 {
-    string 訊息 = StringConcatenate("[OP:BUY]", "[Lots:", 數量, "]", "[Time:", TimeCurrent(), "]");
+    string 訊息 = StringConcatenate("[OP:BUY]", "[Lots:", 數量, "]", "[Ask Price:", Ask,"]", "[Time:", TimeCurrent(), "]");
     紀錄LOG(訊息);
 }
 
 void 記錄空單下單資訊(double 數量)
 {
-    string 訊息 = StringConcatenate("[OP:SELL]", "[Lots:", 數量, "]", "[Time:", TimeCurrent(), "]");
+    string 訊息 = StringConcatenate("[OP:SELL]", "[Lots:", 數量, "]", "[Bid Price:", Bid,"]", "[Time:", TimeCurrent(), "]");
     紀錄LOG(訊息);
 }
 
