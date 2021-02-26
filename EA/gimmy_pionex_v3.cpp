@@ -100,15 +100,24 @@ void 下單(
 )
 {
 
-    int ticketNumber = OrderSend(symbol, cmd, volume, price, 50, stoploss, takeprofit, comment, magic, expiration, arrow_color);
+    int ticketNumber = OrderSend(symbol, cmd, volume, price, 100, stoploss, takeprofit, comment, magic, expiration, arrow_color);
 
-    if (cmd == OP_BUY)
+    if (ticketNumber < 0)
     {
-        記錄多單下單資訊與單號(volume, ticketNumber);
+        string 訊息 = StringConcatenate("[ERROR][Sending Order Failed]:", GetLastError());
+        Print(訊息);
+        紀錄LOG(訊息);
     }
     else
     {
-        記錄空單下單資訊與單號(volume, ticketNumber);
+        if (cmd == OP_BUY)
+        {
+            記錄多單下單資訊與單號(volume, ticketNumber);
+        }
+        else
+        {
+            記錄空單下單資訊與單號(volume, ticketNumber);
+        }
     }
 }
 
@@ -124,6 +133,18 @@ void 記錄空單下單資訊與單號(double 數量, int 單號)
     紀錄LOG(訊息);
 }
 
+void 記錄多單平倉資訊與單號(double 數量, int 單號)
+{
+    string 訊息 = StringConcatenate("[OP:BUY CLOSE]", "[Lots:", 數量, "]", "[Bid Price:", Bid, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
+    紀錄LOG(訊息);
+}
+
+void 記錄空單平倉資訊與單號(double 數量, int 單號)
+{
+    string 訊息 = StringConcatenate("[OP:SELL CLOSE]", "[Lots:", 數量, "]", "[Ask Price:", Ask, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
+    紀錄LOG(訊息);
+}
+
 void 更新價位()
 {
     Bid紀錄 = Bid;
@@ -133,7 +154,7 @@ void 更新價位()
 
 bool 多單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
 {
-    bool isClosed = OrderClose(ticket, lots, price, 50, arrow_color);
+    bool isClosed = OrderClose(ticket, lots, price, 100, arrow_color);
     if (isClosed)
     {
         記錄多單下單資訊與單號(-lots, ticket);
@@ -143,7 +164,7 @@ bool 多單平倉(int ticket, double lots, double price, int slippage, color arr
 
 bool 空單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
 {
-    bool isClosed = OrderClose(ticket, lots, price, 50, arrow_color);
+    bool isClosed = OrderClose(ticket, lots, price, 100, arrow_color);
     if (isClosed)
     {
         記錄空單下單資訊與單號(-lots, ticket);
