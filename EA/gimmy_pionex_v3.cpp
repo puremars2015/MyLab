@@ -4,8 +4,6 @@
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 
-// 此版本開始以IG為主要開發對象
-
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link "https://www.mql5.com"
 #property version "1.00"

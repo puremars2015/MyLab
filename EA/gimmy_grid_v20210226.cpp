@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                              gimmy_pionex_v1.mq4 |
+//|                                              gimmy_grid_v20210226.mq4 |
 //|                        Copyright 2020, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -11,7 +11,7 @@
 #property version "1.00"
 #property strict
 
-#define TRADE_PAIR "XAUUSD."
+#define TRADE_PAIR "XAUUSD"
 
 // 外部輸入參數
 int MAGIC_NUMBER = 5678;
@@ -38,8 +38,8 @@ public:
 // 賣價(Ask)：金融機構賣給投資人的價格 <<投資人要買債券看Ask
 // 買價(Bid)：金融機構跟投資人買的價格 <<投資人要賣債券看Bid
 
-double 內網格寬度 = 3;
-double 外網格寬度 = 2;
+double 內網格寬度 = 1;
+double 外網格寬度 = 1;
 
 double Bid紀錄 = 0;
 double Ask紀錄 = 0;
@@ -100,13 +100,34 @@ void 下單(
 )
 {
 
-    int ticketNumber = OrderSend(symbol, cmd, volume, price, 100, stoploss, takeprofit, comment, magic, expiration, arrow_color);
+    price = NormalizeDouble(price, 2);
+
+    int count = 0;
+
+    int ticketNumber = -1;
+
+    if (cmd == OP_BUY)
+    {
+        while ((ticketNumber == -1) && (count < 10))
+        {
+            RefreshRates();
+            ticketNumber = OrderSend(symbol, cmd, volume, Ask, 10, stoploss, takeprofit, comment, magic, expiration, arrow_color);
+            count++;
+        }
+    }
+    else if (cmd == OP_SELL)
+    {
+        while ((ticketNumber == -1) && (count < 10))
+        {
+            RefreshRates();
+            ticketNumber = OrderSend(symbol, cmd, volume, Bid, 10, stoploss, takeprofit, comment, magic, expiration, arrow_color);
+            count++;
+        }
+    }
 
     if (ticketNumber < 0)
     {
-        string 訊息 = StringConcatenate("[ERROR][Sending Order Failed]:", GetLastError());
-        Print(訊息);
-        紀錄LOG(訊息);
+        紀錄LOG(StringConcatenate("[ERROR][Sending Order Failed]:", GetLastError()));
     }
     else
     {
@@ -154,20 +175,52 @@ void 更新價位()
 
 bool 多單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
 {
-    bool isClosed = OrderClose(ticket, lots, price, 100, arrow_color);
+
+    price = NormalizeDouble(price, 2);
+
+    bool isClosed = false;
+    int count = 0;
+
+    while (isClosed == false && count < 10)
+    {
+        RefreshRates();
+        isClosed = OrderClose(ticket, lots, Bid, 10, arrow_color);
+        count++;
+    }
+
     if (isClosed)
     {
         記錄多單下單資訊與單號(-lots, ticket);
+    }
+    else
+    {
+        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
     }
     return isClosed;
 }
 
 bool 空單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
 {
-    bool isClosed = OrderClose(ticket, lots, price, 100, arrow_color);
+
+    price = NormalizeDouble(price, 2);
+
+    bool isClosed = false;
+    int count = 0;
+
+    while (isClosed == false && count < 10)
+    {
+        RefreshRates();
+        isClosed = OrderClose(ticket, lots, Ask, 10, arrow_color);
+        count++;
+    }
+
     if (isClosed)
     {
         記錄空單下單資訊與單號(-lots, ticket);
+    }
+    else
+    {
+        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
     }
     return isClosed;
 }
@@ -751,7 +804,7 @@ void 記錄多空價格()
     int 多空價格記錄檔 = FileOpen(檔名, FILE_CSV | FILE_READ | FILE_WRITE);
 
     //寫入資料
-    string 訊息 = StringConcatenate("AskRec:", Ask紀錄, ",BidRec:", Bid紀錄);
+    string 訊息 = StringConcatenate("儲存Ask價格:", Ask紀錄, ",儲存Bid價格:", Bid紀錄);
 
     Print(訊息);
 
@@ -801,7 +854,7 @@ void 檢查LOG檔()
 
 void 紀錄LOG(string 訊息)
 {
-    訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER);
+    訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER, "--Ask:", Ask, "--Bid:", Bid, "--Ask紀錄:", Ask紀錄, "--Bid紀錄:", Bid紀錄, "--Time:", TimeCurrent());
 
     Print(訊息);
 
@@ -831,6 +884,46 @@ void 關閉LOG檔()
 double Abs(double value)
 {
     return value > 0 ? value : 0 - value;
+}
+
+void 顯示當前狀態()
+{
+    Print(StringConcatenate("[目前Ask價錢:", Ask, "][目前Bid價錢:", Bid, "][Ask紀錄價錢:", Ask紀錄, "][Bid紀錄價錢:", Bid紀錄, "][目前區間狀態:", status, "]"));
+}
+
+void 止損處理()
+{
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            {
+                RefreshRates();
+                if (OrderOpenPrice() - Bid > 100)
+                {
+                    double lots = OrderLots();
+
+                    RefreshRates();
+                    double price = Bid;
+                    多單平倉(OrderTicket(), lots, price, 0, clrNONE);
+                }
+            }
+
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            {
+                RefreshRates();
+                if (Ask - OrderOpenPrice() > 100)
+                {
+                    double lots = OrderLots();
+
+                    RefreshRates();
+                    double price = Ask;
+                    空單平倉(OrderTicket(), lots, price, 0, clrNONE);
+                }
+            }
+        }
+    }
 }
 
 //+------------------------------------------------------------------+
@@ -882,7 +975,7 @@ void OnDeinit(const int reason)
     //---
 }
 
-char status = ' ';
+string status = "";
 
 //https://www.youtube.com/watch?v=tva-XMSbsLc&vl=en
 //+------------------------------------------------------------------+
@@ -890,88 +983,77 @@ char status = ' ';
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    //TODO: 待補上100點問題
+    //顯示當前狀態();
 
     檢查LOG檔();
 
+    止損處理();
+
     if (讀取多單數量() == 0 && 讀取空單數量() == 0)
     {
-        if (status != 'A')
+        if (status != "A")
         {
+            status = "A";
+            紀錄LOG(StringConcatenate("移動區間到A，時間:", TimeCurrent()));
             更新價位();
-            status = 'A';
-
-            string 訊息 = StringConcatenate("移動區間到A，時間:", TimeCurrent());
-            紀錄LOG(訊息);
         }
     }
     else if (讀取多單數量() < (9 * 單位手數) && 讀取空單數量() < (9 * 單位手數))
     {
-        if (status != 'B')
+        if (status != "B")
         {
+            status = "B";
+            紀錄LOG(StringConcatenate("移動區間到B，時間:", TimeCurrent()));
             更新價位();
-            status = 'B';
-
-            string 訊息 = StringConcatenate("移動區間到B，時間:", TimeCurrent());
-            紀錄LOG(訊息);
         }
     }
     else if (讀取多單數量() == (9 * 單位手數) && 所有多單虧損() && 讀取空單數量() < (18 * 單位手數))
     {
-        if (status != 'C')
+        if (status != "C")
         {
+            status = "C";
+            紀錄LOG(StringConcatenate("移動區間到C，時間:", TimeCurrent()));
             更新價位();
-            status = 'C';
-
-            string 訊息 = StringConcatenate("移動區間到C，時間:", TimeCurrent());
-            紀錄LOG(訊息);
         }
     }
     else if (讀取多單數量() == (9 * 單位手數) && 所有多單虧損() && 讀取空單數量() == (18 * 單位手數))
     {
-        if (status != 'D')
+        if (status != "D")
         {
+            status = "D";
+            紀錄LOG(StringConcatenate("移動區間到D，時間:", TimeCurrent()));
             更新價位();
-            status = 'D';
-
-            string 訊息 = StringConcatenate("移動區間到D，時間:", TimeCurrent());
-            紀錄LOG(訊息);
         }
     }
     else if (讀取空單數量() == (9 * 單位手數) && 所有空單虧損() && 讀取多單數量() < (18 * 單位手數))
     {
-        if (status != 'E')
+        if (status != "E")
         {
+            status = "E";
+            紀錄LOG(StringConcatenate("移動區間到E，時間:", TimeCurrent()));
             更新價位();
-            status = 'E';
-
-            string 訊息 = StringConcatenate("移動區間到E，時間:", TimeCurrent());
-            紀錄LOG(訊息);
         }
     }
     else if (讀取空單數量() == (9 * 單位手數) && 所有空單虧損() && 讀取多單數量() == (18 * 單位手數))
     {
-        if (status != 'F')
+        if (status != "F")
         {
+            status = "F";
+            紀錄LOG(StringConcatenate("移動區間到F，時間:", TimeCurrent()));
             更新價位();
-            status = 'F';
-
-            string 訊息 = StringConcatenate("移動區間到F，時間:", TimeCurrent());
-            紀錄LOG(訊息);
         }
     }
 
-    if (status == 'A')
+    if (status == "A")
     {
         下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
         下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
     }
-    else if (status == 'B')
+    else if (status == "B")
     {
         if ((Bid - Ask紀錄) > 內網格寬度)
         {
-            string 訊息 = StringConcatenate("B區間，發生上漲，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("B區間，發生上漲，時間：", TimeCurrent()));
 
             平獲利多單();
             下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
@@ -980,28 +1062,25 @@ void OnTick()
 
         if ((Bid紀錄 - Ask) > 內網格寬度)
         {
-            string 訊息 = StringConcatenate("B區間，發生下跌，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("B區間，發生下跌，時間：", TimeCurrent()));
 
             平獲利空單();
             下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
             更新價位();
         }
     }
-    else if (status == 'C')
+    else if (status == "C")
     {
 
         if (Bid - Ask紀錄 > 內網格寬度)
         {
-            string 訊息 = StringConcatenate("C區間，發生上漲，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("C區間，發生上漲，時間：", TimeCurrent()));
 
             bool 是否有獲利多單 = 有獲利多單();
 
             if (是否有獲利多單)
             {
-                string 訊息 = StringConcatenate("C區間，發生上漲，有獲利多單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("C區間，發生上漲，有獲利多單，時間：", TimeCurrent()));
 
                 平獲利多單();
                 if (讀取空單數量() < (9 * 單位手數))
@@ -1020,9 +1099,7 @@ void OnTick()
 
             if (是否有獲利空單)
             {
-
-                string 訊息 = StringConcatenate("C區間，發生上漲，有獲利空單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("C區間，發生上漲，有獲利空單，時間：", TimeCurrent()));
 
                 平獲利空單();
                 更新價位();
@@ -1030,8 +1107,7 @@ void OnTick()
 
             if (!是否有獲利多單 && !是否有獲利空單)
             {
-                string 訊息 = StringConcatenate("C區間，發生上漲，沒有獲利多空單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("C區間，發生上漲，沒有獲利多空單，時間：", TimeCurrent()));
 
                 if (Bid > (空單最高價() + 內網格寬度))
                 {
@@ -1044,8 +1120,7 @@ void OnTick()
         //內網格寬度改為2
         if (Bid紀錄 - Ask > 外網格寬度)
         {
-            string 訊息 = StringConcatenate("C區間，繼續下跌，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("C區間，繼續下跌，時間：", TimeCurrent()));
 
             更新價位();
 
@@ -1055,19 +1130,17 @@ void OnTick()
             }
         }
     }
-    else if (status == 'D')
+    else if (status == "D")
     {
         if (Bid - Ask紀錄 > 內網格寬度)
         {
-            string 訊息 = StringConcatenate("D區間，發生上漲，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("D區間，發生上漲，時間：", TimeCurrent()));
 
             bool 是否有獲利多單 = 有獲利多單();
 
             if (是否有獲利多單)
             {
-                string 訊息 = StringConcatenate("D區間，發生上漲，有獲利多單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("D區間，發生上漲，有獲利多單，時間：", TimeCurrent()));
 
                 平獲利多單();
                 if (讀取空單數量() < (9 * 單位手數))
@@ -1086,8 +1159,7 @@ void OnTick()
 
             if (是否有獲利空單)
             {
-                string 訊息 = StringConcatenate("D區間，發生上漲，有獲利空單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("D區間，發生上漲，有獲利空單，時間：", TimeCurrent()));
 
                 平獲利空單();
                 更新價位();
@@ -1095,8 +1167,7 @@ void OnTick()
 
             if (!是否有獲利多單 && !是否有獲利空單)
             {
-                string 訊息 = StringConcatenate("D區間，發生上漲，沒有獲利多空單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("D區間，發生上漲，沒有獲利多空單，時間：", TimeCurrent()));
 
                 if (讀取空單數量() > (9 * 單位手數))
                 {
@@ -1109,26 +1180,23 @@ void OnTick()
         //內網格寬度2
         if (Bid紀錄 - Ask > 外網格寬度)
         {
-            string 訊息 = StringConcatenate("D區間，發生下跌，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("D區間，發生下跌，時間：", TimeCurrent()));
 
             平獲利空單();
             更新價位();
         }
     }
-    else if (status == 'E')
+    else if (status == "E")
     {
         if (Bid紀錄 - Ask > 內網格寬度)
         {
-            string 訊息 = StringConcatenate("E區間，發生下跌，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("E區間，發生下跌，時間：", TimeCurrent()));
 
             bool 是否有獲利空單 = 有獲利空單();
 
             if (是否有獲利空單)
             {
-                string 訊息 = StringConcatenate("E區間，發生下跌，有獲利空單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("E區間，發生下跌，有獲利空單，時間：", TimeCurrent()));
 
                 平獲利空單();
                 if (讀取多單數量() < (9 * 單位手數))
@@ -1147,8 +1215,7 @@ void OnTick()
 
             if (是否有獲利多單)
             {
-                string 訊息 = StringConcatenate("E區間，發生下跌，有獲利多單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("E區間，發生下跌，有獲利多單，時間：", TimeCurrent()));
 
                 平獲利多單();
                 更新價位();
@@ -1156,8 +1223,7 @@ void OnTick()
 
             if (!是否有獲利多單 && !是否有獲利空單)
             {
-                string 訊息 = StringConcatenate("E區間，發生下跌，沒有獲利多空單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("E區間，發生下跌，沒有獲利多空單，時間：", TimeCurrent()));
 
                 if (多單最低價() > (Ask + 內網格寬度))
                 {
@@ -1170,8 +1236,7 @@ void OnTick()
         //內網格寬度2
         if (Bid - Ask紀錄 > 外網格寬度)
         {
-            string 訊息 = StringConcatenate("E區間，發生上漲，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("E區間，發生上漲，時間：", TimeCurrent()));
 
             更新價位();
 
@@ -1181,19 +1246,17 @@ void OnTick()
             }
         }
     }
-    else if (status == 'F')
+    else if (status == "F")
     {
         if (Bid紀錄 - Ask > 內網格寬度)
         {
-            string 訊息 = StringConcatenate("F區間，發生下跌，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("F區間，發生下跌，時間：", TimeCurrent()));
 
             bool 是否有獲利空單 = 有獲利空單();
 
             if (是否有獲利空單)
             {
-                string 訊息 = StringConcatenate("F區間，發生下跌，有獲利空單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("F區間，發生下跌，有獲利空單，時間：", TimeCurrent()));
 
                 平獲利空單();
                 if (讀取多單數量() < (9 * 單位手數))
@@ -1212,8 +1275,7 @@ void OnTick()
 
             if (是否有獲利多單)
             {
-                string 訊息 = StringConcatenate("F區間，發生下跌，有獲利多單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("F區間，發生下跌，有獲利多單，時間：", TimeCurrent()));
 
                 平獲利多單();
                 更新價位();
@@ -1221,8 +1283,7 @@ void OnTick()
 
             if (!是否有獲利多單 && !是否有獲利空單)
             {
-                string 訊息 = StringConcatenate("F區間，發生下跌，沒有獲利多空單，時間：", TimeCurrent());
-                紀錄LOG(訊息);
+                紀錄LOG(StringConcatenate("F區間，發生下跌，沒有獲利多空單，時間：", TimeCurrent()));
 
                 if (讀取多單數量() > (9 * 單位手數))
                 {
@@ -1235,8 +1296,7 @@ void OnTick()
         //內網格寬度2
         if (Bid - Ask紀錄 > 外網格寬度)
         {
-            string 訊息 = StringConcatenate("F區間，發生上漲，時間：", TimeCurrent());
-            紀錄LOG(訊息);
+            紀錄LOG(StringConcatenate("F區間，發生上漲，時間：", TimeCurrent()));
 
             平獲利多單();
             更新價位();
