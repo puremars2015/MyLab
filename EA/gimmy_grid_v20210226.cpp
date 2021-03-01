@@ -232,7 +232,10 @@ void 平獲利多單()
         if (OrderSelect(i, SELECT_BY_POS))
         {
             double oOP = OrderOpenPrice();
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && Bid > oOP && (Bid - oOP) > 內網格寬度)
+            RefreshRates();
+            double bidPrice = Bid;
+
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP && (bidPrice - oOP) > 內網格寬度)
             {
                 double lots = OrderLots();
                 double price = Bid;
@@ -249,7 +252,10 @@ void 平獲利空單()
         if (OrderSelect(i, SELECT_BY_POS))
         {
             double oOP = OrderOpenPrice();
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > Ask && (oOP - Ask) > 內網格寬度)
+            RefreshRates();
+            double askPrice = Ask;
+
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice && (oOP - askPrice) > 內網格寬度)
             {
                 double lots = OrderLots();
                 double price = Ask;
