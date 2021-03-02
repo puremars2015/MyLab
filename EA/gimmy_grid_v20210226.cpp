@@ -85,7 +85,7 @@ double 讀取空單數量()
     return 空單數量;
 }
 
-void 下單(
+bool 下單(
     string symbol,              // symbol
     int cmd,                    // operation
     double volume,              // volume
@@ -140,6 +140,8 @@ void 下單(
             記錄空單下單資訊與單號(volume, ticketNumber);
         }
     }
+
+    return !(ticketNumber < 0);
 }
 
 void 記錄多單下單資訊與單號(double 數量, int 單號)
@@ -1062,8 +1064,10 @@ void OnTick()
             紀錄LOG(StringConcatenate("B區間，發生上漲，時間：", TimeCurrent()));
 
             平獲利多單();
-            下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-            更新價位();
+            if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+            {
+                更新價位();
+            }
         }
 
         if ((Bid紀錄 - Ask) > 內網格寬度)
@@ -1071,8 +1075,10 @@ void OnTick()
             紀錄LOG(StringConcatenate("B區間，發生下跌，時間：", TimeCurrent()));
 
             平獲利空單();
-            下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-            更新價位();
+            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+            {
+                更新價位();
+            }
         }
     }
     else if (status == "C")
@@ -1091,8 +1097,10 @@ void OnTick()
                 平獲利多單();
                 if (讀取空單數量() < (9 * 單位手數))
                 {
-                    下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    更新價位();
+                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    {
+                        更新價位();
+                    }
                 }
                 else if (讀取空單數量() > (9 * 單位手數))
                 {
@@ -1117,9 +1125,11 @@ void OnTick()
 
                 if (Bid > (空單最高價() + 內網格寬度))
                 {
-                    下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    {
+                        更新價位();
+                    }
                 }
-                更新價位();
             }
         }
 
@@ -1128,11 +1138,12 @@ void OnTick()
         {
             紀錄LOG(StringConcatenate("C區間，繼續下跌，時間：", TimeCurrent()));
 
-            更新價位();
-
             if (所有空單價格距離賣價紀錄大於價差(外網格寬度))
             {
-                下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                {
+                    更新價位();
+                }
             }
         }
     }
@@ -1151,8 +1162,10 @@ void OnTick()
                 平獲利多單();
                 if (讀取空單數量() < (9 * 單位手數))
                 {
-                    下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    更新價位();
+                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    {
+                        更新價位();
+                    }
                 }
                 else if (讀取空單數量() > (9 * 單位手數))
                 {
@@ -1207,8 +1220,10 @@ void OnTick()
                 平獲利空單();
                 if (讀取多單數量() < (9 * 單位手數))
                 {
-                    下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    更新價位();
+                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    {
+                        更新價位();
+                    }
                 }
                 else if (讀取多單數量() > (9 * 單位手數))
                 {
@@ -1233,9 +1248,11 @@ void OnTick()
 
                 if (多單最低價() > (Ask + 內網格寬度))
                 {
-                    下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    {
+                        更新價位();
+                    }
                 }
-                更新價位();
             }
         }
 
@@ -1244,11 +1261,12 @@ void OnTick()
         {
             紀錄LOG(StringConcatenate("E區間，發生上漲，時間：", TimeCurrent()));
 
-            更新價位();
-
             if (所有多單價格距離買價紀錄大於價差(外網格寬度))
             {
-                下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+                if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                {
+                    更新價位();
+                }
             }
         }
     }
@@ -1267,8 +1285,10 @@ void OnTick()
                 平獲利空單();
                 if (讀取多單數量() < (9 * 單位手數))
                 {
-                    下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-                    更新價位();
+                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    {
+                        更新價位();
+                    }
                 }
                 else if (讀取多單數量() > (9 * 單位手數))
                 {
