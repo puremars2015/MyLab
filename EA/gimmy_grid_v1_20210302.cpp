@@ -17,6 +17,8 @@
 // 外部輸入參數
 int MAGIC_NUMBER = 56789;
 
+bool INPUT_MAGIC_NUMBER_PLACE = true;
+
 double 單位手數 = 0.01;
 
 class 掛單資訊
@@ -61,7 +63,7 @@ int 讀取多單數量()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE)
             {
                 多單數量++;
             }
@@ -77,7 +79,7 @@ int 讀取空單數量()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE)
             {
                 空單數量++;
             }
@@ -238,7 +240,7 @@ void 平獲利多單()
             RefreshRates();
             double bidPrice = Bid;
 
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP && (bidPrice - oOP) > 內網格寬度)
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE && bidPrice > oOP)
             {
                 double lots = OrderLots();
                 double price = Bid;
@@ -258,7 +260,7 @@ void 平獲利空單()
             RefreshRates();
             double askPrice = Ask;
 
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice && (oOP - askPrice) > 內網格寬度)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE && oOP > askPrice)
             {
                 double lots = OrderLots();
                 double price = Ask;
@@ -274,7 +276,7 @@ bool 所有多單虧損()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && Bid > OrderOpenPrice())
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE && Bid > OrderOpenPrice())
             {
                 return false;
             }
@@ -290,7 +292,7 @@ bool 所有空單虧損()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > Ask)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE && OrderOpenPrice() > Ask)
             {
                 return false;
             }
@@ -306,7 +308,7 @@ bool 有獲利多單()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && Bid > OrderOpenPrice())
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE && Bid > OrderOpenPrice())
             {
                 return true;
             }
@@ -322,7 +324,7 @@ bool 有獲利空單()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > Ask)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE && OrderOpenPrice() > Ask)
             {
                 return true;
             }
@@ -433,7 +435,7 @@ double 計算本次空單獲利()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE)
             {
                 double 平倉價 = Ask;
                 double 開倉價 = OrderOpenPrice();
@@ -458,7 +460,7 @@ double 計算本次多單獲利()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE)
             {
                 double 平倉價 = Bid;
                 double 開倉價 = OrderOpenPrice();
@@ -488,7 +490,7 @@ int 掛單陣列給值(掛單資訊 &掛單資訊陣列[], int orderType)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == orderType && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == orderType && INPUT_MAGIC_NUMBER_PLACE)
             {
                 掛單資訊陣列[pointer].價格 = OrderOpenPrice();
                 掛單資訊陣列[pointer].單號 = OrderTicket();
@@ -680,7 +682,7 @@ bool 所有空單價格距離賣價紀錄大於價差(double 價差)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE)
             {
                 if (Abs(OrderOpenPrice() - Bid紀錄) < 價差)
                 {
@@ -699,7 +701,7 @@ bool 所有多單價格距離買價紀錄大於價差(double 價差)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE)
             {
                 if (Abs(OrderOpenPrice() - Ask紀錄) < 價差)
                 {
@@ -721,7 +723,7 @@ double 多單最低價()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE)
             {
                 double tp = OrderOpenPrice();
 
@@ -750,7 +752,7 @@ double 空單最高價()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE)
             {
                 double tp = OrderOpenPrice();
 
@@ -778,7 +780,7 @@ double 計算目前多單持倉()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE)
             {
                 totalLots += OrderLots();
             }
@@ -796,7 +798,7 @@ double 計算目前空單持倉()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE)
             {
                 totalLots += OrderLots();
             }
@@ -906,7 +908,7 @@ void 止損處理()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE)
             {
                 RefreshRates();
                 if (OrderOpenPrice() - Bid > 100)
@@ -919,7 +921,7 @@ void 止損處理()
                 }
             }
 
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE)
             {
                 RefreshRates();
                 if (Ask - OrderOpenPrice() > 100)
@@ -952,12 +954,12 @@ int OnInit()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_BUY && INPUT_MAGIC_NUMBER_PLACE)
             {
                 longLots += OrderLots();
             }
 
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            if (OrderType() == OP_SELL && INPUT_MAGIC_NUMBER_PLACE)
             {
                 shortLots += OrderLots();
             }
