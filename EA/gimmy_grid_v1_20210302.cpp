@@ -12,10 +12,10 @@
 #property version "1.00"
 #property strict
 
-#define TRADE_PAIR "XAUUSD"
+#define TRADE_PAIR "XAUUSD."
 
 // 外部輸入參數
-int MAGIC_NUMBER = 5678;
+int MAGIC_NUMBER = 56789;
 
 double 單位手數 = 0.01;
 
