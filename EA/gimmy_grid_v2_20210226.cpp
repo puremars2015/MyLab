@@ -1,10 +1,11 @@
 //+------------------------------------------------------------------+
-//|                                              gimmy_grid_v20210226.mq4 |
+//|                                              gimmy_grid_v1.mq4 |
 //|                        Copyright 2020, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 
-// 此版本開始以IG為主要開發對象
+//V1版本為簡化後，過寬執行100點停損的邏輯為主，並增加下單穩定度
+//強化穩定度參考 https://www.earnforex.com/blog/ordersend-error-129-what-to-do/
 
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link "https://www.mql5.com"
@@ -14,7 +15,7 @@
 #define TRADE_PAIR "XAUUSD"
 
 // 外部輸入參數
-int MAGIC_NUMBER = 5678;
+int MAGIC_NUMBER = 56718;
 
 double 單位手數 = 0.01;
 
@@ -38,8 +39,8 @@ public:
 // 賣價(Ask)：金融機構賣給投資人的價格 <<投資人要買債券看Ask
 // 買價(Bid)：金融機構跟投資人買的價格 <<投資人要賣債券看Bid
 
-double 內網格寬度 = 1;
-double 外網格寬度 = 1;
+double 內網格寬度 = 3;
+double 外網格寬度 = 2;
 
 double Bid紀錄 = 0;
 double Ask紀錄 = 0;
@@ -53,32 +54,32 @@ double 賣單數量 = 0;
 string LOG檔名 = "";
 int LOG檔案 = 0;
 
-double 讀取多單數量()
+int 讀取多單數量()
 {
-    double 多單數量 = 0;
+    int 多單數量 = 0;
     for (int i = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
             {
-                多單數量 += OrderLots();
+                多單數量++;
             }
         }
     }
     return 多單數量;
 }
 
-double 讀取空單數量()
+int 讀取空單數量()
 {
-    double 空單數量 = 0;
+    int 空單數量 = 0;
     for (int i = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
             {
-                空單數量 += OrderLots();
+                空單數量++;
             }
         }
     }
@@ -1006,7 +1007,7 @@ void OnTick()
             更新價位();
         }
     }
-    else if (讀取多單數量() < (9 * 單位手數) && 讀取空單數量() < (9 * 單位手數))
+    else if (讀取多單數量() < 9 && 讀取空單數量() < 9)
     {
         if (status != "B")
         {
@@ -1015,7 +1016,7 @@ void OnTick()
             更新價位();
         }
     }
-    else if (讀取多單數量() == (9 * 單位手數) && 所有多單虧損() && 讀取空單數量() < (18 * 單位手數))
+    else if (讀取多單數量() == 9 && 所有多單虧損() && 讀取空單數量() < 18)
     {
         if (status != "C")
         {
@@ -1024,7 +1025,7 @@ void OnTick()
             更新價位();
         }
     }
-    else if (讀取多單數量() == (9 * 單位手數) && 所有多單虧損() && 讀取空單數量() == (18 * 單位手數))
+    else if (讀取多單數量() == 9 && 所有多單虧損() && 讀取空單數量() == 18)
     {
         if (status != "D")
         {
@@ -1033,7 +1034,7 @@ void OnTick()
             更新價位();
         }
     }
-    else if (讀取空單數量() == (9 * 單位手數) && 所有空單虧損() && 讀取多單數量() < (18 * 單位手數))
+    else if (讀取空單數量() == 9 && 所有空單虧損() && 讀取多單數量() < 18)
     {
         if (status != "E")
         {
@@ -1042,7 +1043,7 @@ void OnTick()
             更新價位();
         }
     }
-    else if (讀取空單數量() == (9 * 單位手數) && 所有空單虧損() && 讀取多單數量() == (18 * 單位手數))
+    else if (讀取空單數量() == 9 && 所有空單虧損() && 讀取多單數量() == 18)
     {
         if (status != "F")
         {
@@ -1095,14 +1096,14 @@ void OnTick()
                 紀錄LOG(StringConcatenate("C區間，發生上漲，有獲利多單，時間：", TimeCurrent()));
 
                 平獲利多單();
-                if (讀取空單數量() < (9 * 單位手數))
+                if (讀取空單數量() < 9)
                 {
                     if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
                     {
                         更新價位();
                     }
                 }
-                else if (讀取空單數量() > (9 * 單位手數))
+                else if (讀取空單數量() > 9)
                 {
                     平損失最多的空單直到空單剩下九張();
                     更新價位();
@@ -1160,14 +1161,14 @@ void OnTick()
                 紀錄LOG(StringConcatenate("D區間，發生上漲，有獲利多單，時間：", TimeCurrent()));
 
                 平獲利多單();
-                if (讀取空單數量() < (9 * 單位手數))
+                if (讀取空單數量() < 9)
                 {
                     if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
                     {
                         更新價位();
                     }
                 }
-                else if (讀取空單數量() > (9 * 單位手數))
+                else if (讀取空單數量() > 9)
                 {
                     平損失最多的空單直到空單剩下九張();
                     更新價位();
@@ -1188,7 +1189,7 @@ void OnTick()
             {
                 紀錄LOG(StringConcatenate("D區間，發生上漲，沒有獲利多空單，時間：", TimeCurrent()));
 
-                if (讀取空單數量() > (9 * 單位手數))
+                if (讀取空單數量() > 9)
                 {
                     平損失最多的空單直到空單剩下九張();
                 }
@@ -1218,14 +1219,14 @@ void OnTick()
                 紀錄LOG(StringConcatenate("E區間，發生下跌，有獲利空單，時間：", TimeCurrent()));
 
                 平獲利空單();
-                if (讀取多單數量() < (9 * 單位手數))
+                if (讀取多單數量() < 9)
                 {
                     if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
                     {
                         更新價位();
                     }
                 }
-                else if (讀取多單數量() > (9 * 單位手數))
+                else if (讀取多單數量() > 9)
                 {
                     平損失最多的多單直到多單剩下九張();
                     更新價位();
@@ -1283,14 +1284,14 @@ void OnTick()
                 紀錄LOG(StringConcatenate("F區間，發生下跌，有獲利空單，時間：", TimeCurrent()));
 
                 平獲利空單();
-                if (讀取多單數量() < (9 * 單位手數))
+                if (讀取多單數量() < 9)
                 {
                     if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
                     {
                         更新價位();
                     }
                 }
-                else if (讀取多單數量() > (9 * 單位手數))
+                else if (讀取多單數量() > 9)
                 {
                     平損失最多的多單直到多單剩下九張();
                     更新價位();
@@ -1311,7 +1312,7 @@ void OnTick()
             {
                 紀錄LOG(StringConcatenate("F區間，發生下跌，沒有獲利多空單，時間：", TimeCurrent()));
 
-                if (讀取多單數量() > (9 * 單位手數))
+                if (讀取多單數量() > 9)
                 {
                     平損失最多的多單直到多單剩下九張();
                 }
