@@ -61,6 +61,18 @@ double 賣單數量 = 0;
 string LOG檔名 = "";
 int LOG檔案 = 0;
 
+double ASK()
+{
+    RefreshRates();
+    return Ask;
+}
+
+double BID()
+{
+    RefreshRates();
+    return Bid;
+}
+
 int 讀取多單數量()
 {
     int 多單數量 = 0;
@@ -97,42 +109,50 @@ int 讀取空單數量()
 {
     持單訊息 多單訊息;
 
+    多單訊息.單量 = 0;
+
     ArrayResize(多單訊息.單號, OrdersTotal());
 
     ArrayInitialize(多單訊息.單號, EMPTY_VALUE);
 
-    for (int i = 0; i < OrdersTotal(); i++)
+    for (int i = 0, no = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
             {
-                多單數量++;
+                多單訊息.單量++;
+                多單訊息.單號[no] = OrderTicket();
+                no++;
             }
         }
     }
-    return 多單數量;
+    return 多單訊息;
 }
 
 持單訊息 讀取空單數量與單號()
 {
     持單訊息 空單訊息;
 
-    ArrayResize(多單訊息.單號, OrdersTotal());
+    空單訊息.單量 = 0;
 
-    ArrayInitialize(多單訊息.單號, EMPTY_VALUE);
+    ArrayResize(空單訊息.單號, OrdersTotal());
 
-    for (int i = 0; i < OrdersTotal(); i++)
+    ArrayInitialize(空單訊息.單號, EMPTY_VALUE);
+
+    for (int i = 0, no = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
             {
-                空單數量++;
+                空單訊息.單量++;
+                空單訊息.單號[no] = OrderTicket();
+                no++;
             }
         }
     }
-    return 空單數量;
+    return 空單訊息;
 }
 
 bool 下單(
@@ -183,38 +203,26 @@ bool 下單(
     {
         if (cmd == OP_BUY)
         {
-            記錄多單下單資訊與單號(volume, ticketNumber);
+            記錄多單變化與單號(volume, ticketNumber);
         }
         else
         {
-            記錄空單下單資訊與單號(volume, ticketNumber);
+            記錄空單變化與單號(volume, ticketNumber);
         }
     }
 
     return !(ticketNumber < 0);
 }
 
-void 記錄多單下單資訊與單號(double 數量, int 單號)
+void 記錄多單變化與單號(double 數量, int 單號)
 {
     string 訊息 = StringConcatenate("[OP:BUY]", "[Lots:", 數量, "]", "[Ask Price:", Ask, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
     紀錄LOG(訊息);
 }
 
-void 記錄空單下單資訊與單號(double 數量, int 單號)
+void 記錄空單變化與單號(double 數量, int 單號)
 {
     string 訊息 = StringConcatenate("[OP:SELL]", "[Lots:", 數量, "]", "[Bid Price:", Bid, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
-    紀錄LOG(訊息);
-}
-
-void 記錄多單平倉資訊與單號(double 數量, int 單號)
-{
-    string 訊息 = StringConcatenate("[OP:BUY CLOSE]", "[Lots:", 數量, "]", "[Bid Price:", Bid, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
-    紀錄LOG(訊息);
-}
-
-void 記錄空單平倉資訊與單號(double 數量, int 單號)
-{
-    string 訊息 = StringConcatenate("[OP:SELL CLOSE]", "[Lots:", 數量, "]", "[Ask Price:", Ask, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
     紀錄LOG(訊息);
 }
 
@@ -223,6 +231,85 @@ void 更新價位()
     Bid紀錄 = Bid;
     Ask紀錄 = Ask;
     紀錄LOG(StringConcatenate("更新價位至Bid:[", Bid紀錄, "]", "Ask:[", Ask紀錄, "]"));
+}
+
+void 市價平倉(int &tickets[], int length)
+{
+    for (int i = 0; i < length; i++)
+    {
+        if (OrderSelect(tickets[i], SELECT_BY_TICKET))
+        {
+            bool isClosed = false;
+            int count = 0;
+
+            int type = OrderType();
+            double lots = OrderLots();
+
+            if (type == OP_BUY)
+            {
+                while (isClosed == false && count < 10)
+                {
+                    RefreshRates();
+                    isClosed = OrderClose(tickets[i], lots, Bid, 10, clrNONE);
+                    count++;
+                }
+
+                if (isClosed)
+                {
+                    記錄多單變化與單號(-lots, tickets[i]);
+                }
+                else
+                {
+                    紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                }
+            }
+            else if (type == OP_SELL)
+            {
+                while (isClosed == false && count < 10)
+                {
+                    RefreshRates();
+                    isClosed = OrderClose(tickets[i], lots, Ask, 10, clrNONE);
+                    count++;
+                }
+
+                if (isClosed)
+                {
+                    記錄空單變化與單號(-lots, tickets[i]);
+                }
+                else
+                {
+                    紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                }
+            }
+        }
+        else
+        {
+            紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+        }
+    }
+}
+
+bool 多單市價平倉(int ticket, double lots)
+{
+    bool isClosed = false;
+    int count = 0;
+
+    while (isClosed == false && count < 10)
+    {
+        RefreshRates();
+        isClosed = OrderClose(ticket, lots, Bid, 10, clrNONE);
+        count++;
+    }
+
+    if (isClosed)
+    {
+        記錄多單變化與單號(-lots, ticket);
+    }
+    else
+    {
+        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+    }
+    return isClosed;
 }
 
 bool 多單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
@@ -242,7 +329,31 @@ bool 多單平倉(int ticket, double lots, double price, int slippage, color arr
 
     if (isClosed)
     {
-        記錄多單下單資訊與單號(-lots, ticket);
+        記錄多單變化與單號(-lots, ticket);
+    }
+    else
+    {
+        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+    }
+    return isClosed;
+}
+
+bool 空單市價平倉(int ticket, double lots)
+{
+
+    bool isClosed = false;
+    int count = 0;
+
+    while (isClosed == false && count < 10)
+    {
+        RefreshRates();
+        isClosed = OrderClose(ticket, lots, Ask, 10, clrNONE);
+        count++;
+    }
+
+    if (isClosed)
+    {
+        記錄空單變化與單號(-lots, ticket);
     }
     else
     {
@@ -268,7 +379,7 @@ bool 空單平倉(int ticket, double lots, double price, int slippage, color arr
 
     if (isClosed)
     {
-        記錄空單下單資訊與單號(-lots, ticket);
+        記錄空單變化與單號(-lots, ticket);
     }
     else
     {
@@ -886,58 +997,57 @@ void 記錄多空價格()
     }
 }
 
-void 初始設定LOG檔()
-{
-    LOG檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
-    LOG檔案 = FileOpen(LOG檔名, FILE_CSV | FILE_READ | FILE_WRITE);
-}
+// void 初始設定LOG檔()
+// {
+//     LOG檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
+//     LOG檔案 = FileOpen(LOG檔名, FILE_CSV | FILE_READ | FILE_WRITE);
+// }
 
-void 檢查LOG檔()
-{
-    string LOG新檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
-    if (LOG檔名 != LOG新檔名)
-    {
-        if (LOG檔案 != INVALID_HANDLE)
-        {
-            FileClose(LOG檔案);
-        }
-        else
-        {
-            Print("LOG檔名檢查更新失敗", GetLastError());
-        }
+// void 檢查LOG檔()
+// {
+//     string LOG新檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
+//     if (LOG檔名 != LOG新檔名)
+//     {
+//         if (LOG檔案 != INVALID_HANDLE)
+//         {
+//             FileClose(LOG檔案);
+//         }
+//         else
+//         {
+//             Print("LOG檔名檢查更新失敗", GetLastError());
+//         }
 
-        LOG檔案 = FileOpen(LOG新檔名, FILE_CSV | FILE_READ | FILE_WRITE);
-    }
-}
+//         LOG檔案 = FileOpen(LOG新檔名, FILE_CSV | FILE_READ | FILE_WRITE);
+//     }
+// }
 
 void 紀錄LOG(string 訊息)
 {
     訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER, "--Ask:", Ask, "--Bid:", Bid, "--Ask紀錄:", Ask紀錄, "--Bid紀錄:", Bid紀錄, "--Time:", TimeCurrent());
-
     Print(訊息);
 
-    if (LOG檔案 != INVALID_HANDLE)
-    {
-        FileSeek(LOG檔案, 0, SEEK_END);
-        FileWrite(LOG檔案, 訊息);
-    }
-    else
-    {
-        Print("紀錄LOG失敗!!", GetLastError());
-    }
+    // if (LOG檔案 != INVALID_HANDLE)
+    // {
+    //     FileSeek(LOG檔案, 0, SEEK_END);
+    //     FileWrite(LOG檔案, 訊息);
+    // }
+    // else
+    // {
+    //     Print("紀錄LOG失敗!!", GetLastError());
+    // }
 }
 
-void 關閉LOG檔()
-{
-    if (LOG檔案 != INVALID_HANDLE)
-    {
-        FileClose(LOG檔案);
-    }
-    else
-    {
-        Print("關閉LOG檔失敗!!", GetLastError());
-    }
-}
+// void 關閉LOG檔()
+// {
+//     if (LOG檔案 != INVALID_HANDLE)
+//     {
+//         FileClose(LOG檔案);
+//     }
+//     else
+//     {
+//         Print("關閉LOG檔失敗!!", GetLastError());
+//     }
+// }
 
 double Abs(double value)
 {
@@ -992,7 +1102,7 @@ int OnInit()
 {
     //---
 
-    初始設定LOG檔();
+    // 初始設定LOG檔();
 
     int longTicketCount = 0;
     int shortTicketCount = 0;
@@ -1027,7 +1137,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    關閉LOG檔();
+    // 關閉LOG檔();
 
     記錄多空價格();
     //---
@@ -1041,9 +1151,9 @@ string status = "";
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    //顯示當前狀態();
+    // 顯示當前狀態();
 
-    檢查LOG檔();
+    // 檢查LOG檔();
 
     止損處理();
 
