@@ -97,6 +97,8 @@ int 讀取空單數量()
 {
     持單訊息 多單訊息;
 
+    多單訊息.單量 = 0;
+
     ArrayResize(多單訊息.單號, OrdersTotal());
 
     ArrayInitialize(多單訊息.單號, EMPTY_VALUE);
@@ -107,20 +109,23 @@ int 讀取空單數量()
         {
             if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
             {
-                多單數量++;
+                多單訊息.單量++;
+                多單訊息.單號[i] = OrderTicket();
             }
         }
     }
-    return 多單數量;
+    return 多單訊息;
 }
 
 持單訊息 讀取空單數量與單號()
 {
     持單訊息 空單訊息;
 
-    ArrayResize(多單訊息.單號, OrdersTotal());
+    空單訊息.單量 = 0;
 
-    ArrayInitialize(多單訊息.單號, EMPTY_VALUE);
+    ArrayResize(空單訊息.單號, OrdersTotal());
+
+    ArrayInitialize(空單訊息.單號, EMPTY_VALUE);
 
     for (int i = 0; i < OrdersTotal(); i++)
     {
@@ -128,11 +133,12 @@ int 讀取空單數量()
         {
             if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
             {
-                空單數量++;
+                空單訊息.單量++;
+                空單訊息.單號[i] = OrderTicket();
             }
         }
     }
-    return 空單數量;
+    return 空單訊息;
 }
 
 bool 下單(
@@ -279,9 +285,11 @@ bool 空單平倉(int ticket, double lots, double price, int slippage, color arr
 
 void 平獲利多單()
 {
-    for (int i = 0; i < OrdersTotal(); i++)
+    持單訊息 多單資訊 = 讀取多單數量與單號();
+
+    for(int i = 0; i < 多單資訊.單量; i++)
     {
-        if (OrderSelect(i, SELECT_BY_POS))
+        if (OrderSelect(多單資訊.單號[i], SELECT_BY_TICKET))
         {
             double oOP = OrderOpenPrice();
             RefreshRates();
@@ -289,9 +297,8 @@ void 平獲利多單()
 
             if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP)
             {
-                double lots = OrderLots();
                 double price = Bid;
-                多單平倉(OrderTicket(), lots, price, 0, clrNONE);
+                多單平倉(OrderTicket(), OrderLots(), price, 0, clrNONE);
             }
         }
     }
@@ -299,9 +306,11 @@ void 平獲利多單()
 
 void 平獲利空單()
 {
-    for (int i = 0; i < OrdersTotal(); i++)
+    持單訊息 空單資訊 = 讀取空單數量與單號();
+
+    for (int i = 0; i < 空單資訊.單量; i++)
     {
-        if (OrderSelect(i, SELECT_BY_POS))
+        if (OrderSelect(空單資訊.單號[i], SELECT_BY_TICKET))
         {
             double oOP = OrderOpenPrice();
             RefreshRates();
@@ -309,9 +318,8 @@ void 平獲利空單()
 
             if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice)
             {
-                double lots = OrderLots();
                 double price = Ask;
-                空單平倉(OrderTicket(), lots, price, 0, clrNONE);
+                空單平倉(OrderTicket(), OrderLots(), price, 0, clrNONE);
             }
         }
     }
@@ -916,15 +924,15 @@ void 紀錄LOG(string 訊息)
 
     Print(訊息);
 
-    if (LOG檔案 != INVALID_HANDLE)
-    {
-        FileSeek(LOG檔案, 0, SEEK_END);
-        FileWrite(LOG檔案, 訊息);
-    }
-    else
-    {
-        Print("紀錄LOG失敗!!", GetLastError());
-    }
+    // if (LOG檔案 != INVALID_HANDLE)
+    // {
+    //     FileSeek(LOG檔案, 0, SEEK_END);
+    //     FileWrite(LOG檔案, 訊息);
+    // }
+    // else
+    // {
+    //     Print("紀錄LOG失敗!!", GetLastError());
+    // }
 }
 
 void 關閉LOG檔()
@@ -992,7 +1000,7 @@ int OnInit()
 {
     //---
 
-    初始設定LOG檔();
+    // 初始設定LOG檔();
 
     int longTicketCount = 0;
     int shortTicketCount = 0;
@@ -1027,7 +1035,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    關閉LOG檔();
+    // 關閉LOG檔();
 
     記錄多空價格();
     //---
@@ -1043,7 +1051,7 @@ void OnTick()
 {
     //顯示當前狀態();
 
-    檢查LOG檔();
+    // 檢查LOG檔();
 
     止損處理();
 
