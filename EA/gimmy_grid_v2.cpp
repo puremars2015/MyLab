@@ -4,7 +4,9 @@
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 
-//V1版本為簡化後，過寬執行100點停損的邏輯為主，並增加下單穩定度
+// V1版本特性
+// 1、100點處理
+// 2、有賺就可以平、暫時不考慮要超越單網格寬度
 //強化穩定度參考 https://www.earnforex.com/blog/ordersend-error-129-what-to-do/
 
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
@@ -230,8 +232,7 @@ void 市價平倉(int &tickets[], int length)
             {
                 while (isClosed == false && count < 10)
                 {
-                    RefreshRates();
-                    isClosed = OrderClose(tickets[i], lots, Bid, 10, clrNONE);
+                    isClosed = OrderClose(tickets[i], lots, BID(), 10, clrNONE);
                     count++;
                 }
 
@@ -248,8 +249,7 @@ void 市價平倉(int &tickets[], int length)
             {
                 while (isClosed == false && count < 10)
                 {
-                    RefreshRates();
-                    isClosed = OrderClose(tickets[i], lots, Ask, 10, clrNONE);
+                    isClosed = OrderClose(tickets[i], lots, ASK(), 10, clrNONE);
                     count++;
                 }
 
@@ -270,6 +270,66 @@ void 市價平倉(int &tickets[], int length)
     }
 }
 
+void 獲利市價平倉(int &tickets[], int length)
+{
+    for (int i = 0; i < length; i++)
+    {
+        if (OrderSelect(tickets[i], SELECT_BY_TICKET))
+        {
+            bool isClosed = false;
+            int count = 0;
+
+            int type = OrderType();
+            double lots = OrderLots();
+
+            if (type == OP_BUY)
+            {
+                if (BID() > OrderOpenPrice())
+                {
+                    while (isClosed == false && count < 10)
+                    {
+                        isClosed = OrderClose(tickets[i], lots, BID(), 10, clrNONE);
+                        count++;
+                    }
+
+                    if (isClosed)
+                    {
+                        記錄多單變化與單號(-lots, tickets[i]);
+                    }
+                    else
+                    {
+                        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                    }
+                }
+            }
+            else if (type == OP_SELL)
+            {
+                if (OrderOpenPrice() > ASK())
+                {
+                    while (isClosed == false && count < 10)
+                    {
+                        isClosed = OrderClose(tickets[i], lots, ASK(), 10, clrNONE);
+                        count++;
+                    }
+
+                    if (isClosed)
+                    {
+                        記錄空單變化與單號(-lots, tickets[i]);
+                    }
+                    else
+                    {
+                        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                    }
+                }
+            }
+        }
+        else
+        {
+            紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+        }
+    }
+}
+
 bool 多單市價平倉(int ticket, double lots)
 {
     bool isClosed = false;
@@ -277,8 +337,7 @@ bool 多單市價平倉(int ticket, double lots)
 
     while (isClosed == false && count < 10)
     {
-        RefreshRates();
-        isClosed = OrderClose(ticket, lots, Bid, 10, clrNONE);
+        isClosed = OrderClose(ticket, lots, BID(), 10, clrNONE);
         count++;
     }
 
@@ -371,42 +430,16 @@ bool 空單平倉(int ticket, double lots, double price, int slippage, color arr
 
 void 平獲利多單()
 {
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (OrderSelect(i, SELECT_BY_POS))
-        {
-            double oOP = OrderOpenPrice();
-            RefreshRates();
-            double bidPrice = Bid;
+    持單訊息 多單訊息 = 讀取多單數量與單號();
 
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP)
-            {
-                double lots = OrderLots();
-                double price = Bid;
-                多單平倉(OrderTicket(), lots, price, 0, clrNONE);
-            }
-        }
-    }
+    獲利市價平倉(多單訊息.單號, 多單訊息.單量);
 }
 
 void 平獲利空單()
 {
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (OrderSelect(i, SELECT_BY_POS))
-        {
-            double oOP = OrderOpenPrice();
-            RefreshRates();
-            double askPrice = Ask;
+    持單訊息 空單訊息 = 讀取空單數量與單號();
 
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice)
-            {
-                double lots = OrderLots();
-                double price = Ask;
-                空單平倉(OrderTicket(), lots, price, 0, clrNONE);
-            }
-        }
-    }
+    獲利市價平倉(空單訊息.單號, 空單訊息.單量);
 }
 
 bool 所有多單虧損()

@@ -4,8 +4,10 @@
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 
-//V1版本為簡化後，過寬執行100點停損的邏輯為主，並增加下單穩定度
-//強化穩定度參考 https://www.earnforex.com/blog/ordersend-error-129-what-to-do/
+// V1版本特性
+// 1、100點處理
+// 2、有賺就可以平、暫時不考慮要超越單網格寬度
+// 強化穩定度參考 https://www.earnforex.com/blog/ordersend-error-129-what-to-do/
 
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link "https://www.mql5.com"
@@ -15,7 +17,7 @@
 #define TRADE_PAIR "XAUUSD"
 
 // 外部輸入參數
-int MAGIC_NUMBER = 5678;
+int MAGIC_NUMBER = 56789;
 
 double 單位手數 = 0.01;
 
