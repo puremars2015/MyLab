@@ -4,20 +4,24 @@
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 
-//V1版本為簡化後，過寬執行100點停損的邏輯為主，並增加下單穩定度
+// V1版本特性
+// 1、100點處理
+// 2、有賺就可以平、暫時不考慮要超越單網格寬度
 //強化穩定度參考 https://www.earnforex.com/blog/ordersend-error-129-what-to-do/
 
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link "https://www.mql5.com"
-#property version "1.00"
+#property version "2.00"
 #property strict
 
-#define TRADE_PAIR "XAUUSD"
+#define TRADE_PAIR "XAUUSD."
 
 // 外部輸入參數
-int MAGIC_NUMBER = 5678;
+int MAGIC_NUMBER = 56789;
 
 double 單位手數 = 0.01;
+
+int SLIDPAGE = 10;
 
 class 掛單資訊
 {
@@ -61,6 +65,18 @@ double 賣單數量 = 0;
 string LOG檔名 = "";
 int LOG檔案 = 0;
 
+double ASK()
+{
+    RefreshRates();
+    return Ask;
+}
+
+double BID()
+{
+    RefreshRates();
+    return Bid;
+}
+
 int 讀取多單數量()
 {
     int 多單數量 = 0;
@@ -103,14 +119,15 @@ int 讀取空單數量()
 
     ArrayInitialize(多單訊息.單號, EMPTY_VALUE);
 
-    for (int i = 0; i < OrdersTotal(); i++)
+    for (int i = 0, no = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 多單訊息.單量++;
-                多單訊息.單號[i] = OrderTicket();
+                多單訊息.單號[no] = OrderTicket();
+                no++;
             }
         }
     }
@@ -127,100 +144,68 @@ int 讀取空單數量()
 
     ArrayInitialize(空單訊息.單號, EMPTY_VALUE);
 
-    for (int i = 0; i < OrdersTotal(); i++)
+    for (int i = 0, no = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
             {
                 空單訊息.單量++;
-                空單訊息.單號[i] = OrderTicket();
+                空單訊息.單號[no] = OrderTicket();
+                no++;
             }
         }
     }
     return 空單訊息;
 }
 
-bool 下單(
-    string symbol,              // symbol
-    int cmd,                    // operation
-    double volume,              // volume
-    double price,               // price
-    int slippage,               // slippage
-    double stoploss,            // stop loss
-    double takeprofit,          // take profit
-    string comment = NULL,      // comment
-    int magic = 0,              // magic number
-    datetime expiration = 0,    // pending order expiration
-    color arrow_color = clrNONE // color
-)
+bool 下多單()
 {
-
-    price = NormalizeDouble(price, 2);
-
     int count = 0;
-
     int ticketNumber = -1;
 
-    if (cmd == OP_BUY)
+    while ((ticketNumber == -1) && (count < 10))
     {
-        while ((ticketNumber == -1) && (count < 10))
-        {
-            RefreshRates();
-            ticketNumber = OrderSend(symbol, cmd, volume, Ask, 10, stoploss, takeprofit, comment, magic, expiration, clrGreen);
-            count++;
-        }
-    }
-    else if (cmd == OP_SELL)
-    {
-        while ((ticketNumber == -1) && (count < 10))
-        {
-            RefreshRates();
-            ticketNumber = OrderSend(symbol, cmd, volume, Bid, 10, stoploss, takeprofit, comment, magic, expiration, clrRed);
-            count++;
-        }
+        ticketNumber = OrderSend(TRADE_PAIR, OP_BUY, 單位手數, ASK(), SLIDPAGE, 0, 0, "", MAGIC_NUMBER, 0, clrGreen);
+        count++;
     }
 
     if (ticketNumber < 0)
     {
-        紀錄LOG(StringConcatenate("[ERROR][Sending Order Failed]:", GetLastError()));
-    }
-    else
-    {
-        if (cmd == OP_BUY)
-        {
-            記錄多單下單資訊與單號(volume, ticketNumber);
-        }
-        else
-        {
-            記錄空單下單資訊與單號(volume, ticketNumber);
-        }
+        紀錄LOG(StringConcatenate("[ERROR][Sending Long Order Failed]:", GetLastError()));
     }
 
     return !(ticketNumber < 0);
 }
 
-void 記錄多單下單資訊與單號(double 數量, int 單號)
+bool 下空單()
+{
+    int count = 0;
+    int ticketNumber = -1;
+
+    while ((ticketNumber == -1) && (count < 10))
+    {
+        ticketNumber = OrderSend(TRADE_PAIR, OP_SELL, 單位手數, BID(), SLIDPAGE, 0, 0, "", MAGIC_NUMBER, 0, clrRed);
+        count++;
+    }
+
+    if (ticketNumber < 0)
+    {
+        紀錄LOG(StringConcatenate("[ERROR][Sending Short Order Failed]:", GetLastError()));
+    }
+
+    return !(ticketNumber < 0);
+}
+
+void 記錄多單變化與單號(double 數量, int 單號)
 {
     string 訊息 = StringConcatenate("[OP:BUY]", "[Lots:", 數量, "]", "[Ask Price:", Ask, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
     紀錄LOG(訊息);
 }
 
-void 記錄空單下單資訊與單號(double 數量, int 單號)
+void 記錄空單變化與單號(double 數量, int 單號)
 {
     string 訊息 = StringConcatenate("[OP:SELL]", "[Lots:", 數量, "]", "[Bid Price:", Bid, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
-    紀錄LOG(訊息);
-}
-
-void 記錄多單平倉資訊與單號(double 數量, int 單號)
-{
-    string 訊息 = StringConcatenate("[OP:BUY CLOSE]", "[Lots:", 數量, "]", "[Bid Price:", Bid, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
-    紀錄LOG(訊息);
-}
-
-void 記錄空單平倉資訊與單號(double 數量, int 單號)
-{
-    string 訊息 = StringConcatenate("[OP:SELL CLOSE]", "[Lots:", 數量, "]", "[Ask Price:", Ask, "]", "[單號:", 單號, "]", "[Time:", TimeCurrent(), "]");
     紀錄LOG(訊息);
 }
 
@@ -229,6 +214,142 @@ void 更新價位()
     Bid紀錄 = Bid;
     Ask紀錄 = Ask;
     紀錄LOG(StringConcatenate("更新價位至Bid:[", Bid紀錄, "]", "Ask:[", Ask紀錄, "]"));
+}
+
+void 市價平倉(int &tickets[], int length)
+{
+    for (int i = 0; i < length; i++)
+    {
+        if (OrderSelect(tickets[i], SELECT_BY_TICKET))
+        {
+            bool isClosed = false;
+            int count = 0;
+
+            int type = OrderType();
+            double lots = OrderLots();
+
+            if (type == OP_BUY)
+            {
+                while (isClosed == false && count < 10)
+                {
+                    isClosed = OrderClose(tickets[i], lots, BID(), 10, clrNONE);
+                    count++;
+                }
+
+                if (isClosed)
+                {
+                    記錄多單變化與單號(-lots, tickets[i]);
+                }
+                else
+                {
+                    紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                }
+            }
+            else if (type == OP_SELL)
+            {
+                while (isClosed == false && count < 10)
+                {
+                    isClosed = OrderClose(tickets[i], lots, ASK(), 10, clrNONE);
+                    count++;
+                }
+
+                if (isClosed)
+                {
+                    記錄空單變化與單號(-lots, tickets[i]);
+                }
+                else
+                {
+                    紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                }
+            }
+        }
+        else
+        {
+            紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+        }
+    }
+}
+
+void 獲利市價平倉(int &tickets[], int length)
+{
+    for (int i = 0; i < length; i++)
+    {
+        if (OrderSelect(tickets[i], SELECT_BY_TICKET))
+        {
+            bool isClosed = false;
+            int count = 0;
+
+            int type = OrderType();
+            double lots = OrderLots();
+
+            if (type == OP_BUY)
+            {
+                if (BID() > OrderOpenPrice())
+                {
+                    while (isClosed == false && count < 10)
+                    {
+                        isClosed = OrderClose(tickets[i], lots, BID(), 10, clrNONE);
+                        count++;
+                    }
+
+                    if (isClosed)
+                    {
+                        記錄多單變化與單號(-lots, tickets[i]);
+                    }
+                    else
+                    {
+                        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                    }
+                }
+            }
+            else if (type == OP_SELL)
+            {
+                if (OrderOpenPrice() > ASK())
+                {
+                    while (isClosed == false && count < 10)
+                    {
+                        isClosed = OrderClose(tickets[i], lots, ASK(), 10, clrNONE);
+                        count++;
+                    }
+
+                    if (isClosed)
+                    {
+                        記錄空單變化與單號(-lots, tickets[i]);
+                    }
+                    else
+                    {
+                        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                    }
+                }
+            }
+        }
+        else
+        {
+            紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+        }
+    }
+}
+
+bool 多單市價平倉(int ticket, double lots)
+{
+    bool isClosed = false;
+    int count = 0;
+
+    while (isClosed == false && count < 10)
+    {
+        isClosed = OrderClose(ticket, lots, BID(), 10, clrNONE);
+        count++;
+    }
+
+    if (isClosed)
+    {
+        記錄多單變化與單號(-lots, ticket);
+    }
+    else
+    {
+        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+    }
+    return isClosed;
 }
 
 bool 多單平倉(int ticket, double lots, double price, int slippage, color arrow_color)
@@ -248,7 +369,31 @@ bool 多單平倉(int ticket, double lots, double price, int slippage, color arr
 
     if (isClosed)
     {
-        記錄多單下單資訊與單號(-lots, ticket);
+        記錄多單變化與單號(-lots, ticket);
+    }
+    else
+    {
+        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+    }
+    return isClosed;
+}
+
+bool 空單市價平倉(int ticket, double lots)
+{
+
+    bool isClosed = false;
+    int count = 0;
+
+    while (isClosed == false && count < 10)
+    {
+        RefreshRates();
+        isClosed = OrderClose(ticket, lots, Ask, 10, clrNONE);
+        count++;
+    }
+
+    if (isClosed)
+    {
+        記錄空單變化與單號(-lots, ticket);
     }
     else
     {
@@ -274,7 +419,7 @@ bool 空單平倉(int ticket, double lots, double price, int slippage, color arr
 
     if (isClosed)
     {
-        記錄空單下單資訊與單號(-lots, ticket);
+        記錄空單變化與單號(-lots, ticket);
     }
     else
     {
@@ -285,44 +430,16 @@ bool 空單平倉(int ticket, double lots, double price, int slippage, color arr
 
 void 平獲利多單()
 {
-    持單訊息 多單資訊 = 讀取多單數量與單號();
+    持單訊息 多單訊息 = 讀取多單數量與單號();
 
-    for(int i = 0; i < 多單資訊.單量; i++)
-    {
-        if (OrderSelect(多單資訊.單號[i], SELECT_BY_TICKET))
-        {
-            double oOP = OrderOpenPrice();
-            RefreshRates();
-            double bidPrice = Bid;
-
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP)
-            {
-                double price = Bid;
-                多單平倉(OrderTicket(), OrderLots(), price, 0, clrNONE);
-            }
-        }
-    }
+    獲利市價平倉(多單訊息.單號, 多單訊息.單量);
 }
 
 void 平獲利空單()
 {
-    持單訊息 空單資訊 = 讀取空單數量與單號();
+    持單訊息 空單訊息 = 讀取空單數量與單號();
 
-    for (int i = 0; i < 空單資訊.單量; i++)
-    {
-        if (OrderSelect(空單資訊.單號[i], SELECT_BY_TICKET))
-        {
-            double oOP = OrderOpenPrice();
-            RefreshRates();
-            double askPrice = Ask;
-
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice)
-            {
-                double price = Ask;
-                空單平倉(OrderTicket(), OrderLots(), price, 0, clrNONE);
-            }
-        }
-    }
+    獲利市價平倉(空單訊息.單號, 空單訊息.單量);
 }
 
 bool 所有多單虧損()
@@ -483,56 +600,6 @@ void 平損失最多的多單直到多單剩下九張()
     }
 }
 
-double 計算本次空單獲利()
-{
-    double 獲利 = 0;
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (OrderSelect(i, SELECT_BY_POS))
-        {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
-            {
-                double 平倉價 = Ask;
-                double 開倉價 = OrderOpenPrice();
-                if (開倉價 > 平倉價)
-                {
-                    if (空單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE))
-                    {
-                        獲利 += (開倉價 - 平倉價);
-                    }
-                }
-            }
-        }
-    }
-
-    return 獲利;
-}
-
-double 計算本次多單獲利()
-{
-    double 獲利 = 0;
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (OrderSelect(i, SELECT_BY_POS))
-        {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
-            {
-                double 平倉價 = Bid;
-                double 開倉價 = OrderOpenPrice();
-                if (平倉價 > 開倉價)
-                {
-                    if (多單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE))
-                    {
-                        獲利 += (平倉價 - 開倉價);
-                    }
-                }
-            }
-        }
-    }
-
-    return 獲利;
-}
-
 /** 
  * orderType 應為 OP_SELL、OP_BUY
  * 回傳陣列結束位置
@@ -555,180 +622,6 @@ int 掛單陣列給值(掛單資訊 &掛單資訊陣列[], int orderType)
     }
 
     return pointer;
-}
-
-double 最遠多單損失()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
-
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    return 掛單資訊陣列[0].價格 - Bid;
-}
-
-double 第二遠多單損失()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
-
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    return 掛單資訊陣列[1].價格 - Bid;
-}
-
-double 第三遠多單損失()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
-
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    return 掛單資訊陣列[2].價格 - Bid;
-}
-
-double 最遠空單損失()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
-
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    return Ask - 掛單資訊陣列[0].價格;
-}
-
-double 第二遠空單損失()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
-
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    return Ask - 掛單資訊陣列[1].價格;
-}
-
-double 第三遠空單損失()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
-
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    return Ask - 掛單資訊陣列[2].價格;
-}
-
-double 平最遠多單()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
-
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    double 平倉價 = Bid;
-
-    if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
-    {
-        多單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
-    }
-
-    return 掛單資訊陣列[0].價格 - 平倉價;
-}
-
-double 平第二遠多單()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
-
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    double 平倉價 = Bid;
-
-    if (OrderSelect(掛單資訊陣列[1].單號, SELECT_BY_TICKET))
-    {
-        多單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
-    }
-
-    return 掛單資訊陣列[1].價格 - 平倉價;
-}
-
-double 平第三遠多單()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
-
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    double 平倉價 = Bid;
-
-    if (OrderSelect(掛單資訊陣列[2].單號, SELECT_BY_TICKET))
-    {
-        多單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
-    }
-
-    return 掛單資訊陣列[2].價格 - 平倉價;
-}
-
-double 平最遠空單()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
-
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    double 平倉價 = Ask;
-
-    if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
-    {
-        空單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
-    }
-
-    return 平倉價 - 掛單資訊陣列[0].價格;
-}
-
-double 平第二遠空單()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
-
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    double 平倉價 = Ask;
-
-    if (OrderSelect(掛單資訊陣列[1].單號, SELECT_BY_TICKET))
-    {
-        空單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
-    }
-
-    return 平倉價 - 掛單資訊陣列[1].價格;
-}
-
-double 平第三遠空單()
-{
-    掛單資訊 掛單資訊陣列[18];
-
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
-
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
-
-    double 平倉價 = Ask;
-
-    if (OrderSelect(掛單資訊陣列[2].單號, SELECT_BY_TICKET))
-    {
-        空單平倉(OrderTicket(), OrderLots(), 平倉價, 0, clrNONE);
-    }
-
-    return 平倉價 - 掛單資訊陣列[2].價格;
 }
 
 bool 所有空單價格距離賣價大於價差(double 價差)
@@ -827,42 +720,6 @@ double 空單最高價()
     return highest;
 }
 
-double 計算目前多單持倉()
-{
-    double totalLots = 0;
-
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (OrderSelect(i, SELECT_BY_POS))
-        {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
-            {
-                totalLots += OrderLots();
-            }
-        }
-    }
-
-    return totalLots;
-}
-
-double 計算目前空單持倉()
-{
-    double totalLots = 0;
-
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (OrderSelect(i, SELECT_BY_POS))
-        {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
-            {
-                totalLots += OrderLots();
-            }
-        }
-    }
-
-    return totalLots;
-}
-
 void 記錄多空價格()
 {
     //打開檔案
@@ -894,57 +751,10 @@ void 記錄多空價格()
     }
 }
 
-void 初始設定LOG檔()
-{
-    LOG檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
-    LOG檔案 = FileOpen(LOG檔名, FILE_CSV | FILE_READ | FILE_WRITE);
-}
-
-void 檢查LOG檔()
-{
-    string LOG新檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
-    if (LOG檔名 != LOG新檔名)
-    {
-        if (LOG檔案 != INVALID_HANDLE)
-        {
-            FileClose(LOG檔案);
-        }
-        else
-        {
-            Print("LOG檔名檢查更新失敗", GetLastError());
-        }
-
-        LOG檔案 = FileOpen(LOG新檔名, FILE_CSV | FILE_READ | FILE_WRITE);
-    }
-}
-
 void 紀錄LOG(string 訊息)
 {
     訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER, "--Ask:", Ask, "--Bid:", Bid, "--Ask紀錄:", Ask紀錄, "--Bid紀錄:", Bid紀錄, "--Time:", TimeCurrent());
-
     Print(訊息);
-
-    // if (LOG檔案 != INVALID_HANDLE)
-    // {
-    //     FileSeek(LOG檔案, 0, SEEK_END);
-    //     FileWrite(LOG檔案, 訊息);
-    // }
-    // else
-    // {
-    //     Print("紀錄LOG失敗!!", GetLastError());
-    // }
-}
-
-void 關閉LOG檔()
-{
-    if (LOG檔案 != INVALID_HANDLE)
-    {
-        FileClose(LOG檔案);
-    }
-    else
-    {
-        Print("關閉LOG檔失敗!!", GetLastError());
-    }
 }
 
 double Abs(double value)
@@ -1035,8 +845,6 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    // 關閉LOG檔();
-
     記錄多空價格();
     //---
 }
@@ -1049,10 +857,6 @@ string status = "";
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    //顯示當前狀態();
-
-    // 檢查LOG檔();
-
     止損處理();
 
     if (讀取多單數量() == 0 && 讀取空單數量() == 0)
@@ -1112,8 +916,8 @@ void OnTick()
 
     if (status == "A")
     {
-        下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-        下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+        下多單();
+        下空單();
     }
     else if (status == "B")
     {
@@ -1122,7 +926,7 @@ void OnTick()
             紀錄LOG(StringConcatenate("B區間，發生上漲，時間：", TimeCurrent()));
 
             平獲利多單();
-            if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+            if (下空單())
             {
                 更新價位();
             }
@@ -1133,7 +937,7 @@ void OnTick()
             紀錄LOG(StringConcatenate("B區間，發生下跌，時間：", TimeCurrent()));
 
             平獲利空單();
-            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+            if (下多單())
             {
                 更新價位();
             }
@@ -1155,7 +959,7 @@ void OnTick()
                 平獲利多單();
                 if (讀取空單數量() < 9)
                 {
-                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    if (下空單())
                     {
                         更新價位();
                     }
@@ -1183,7 +987,7 @@ void OnTick()
 
                 if (Bid > (空單最高價() + 內網格寬度))
                 {
-                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    if (下空單())
                     {
                         更新價位();
                     }
@@ -1198,7 +1002,7 @@ void OnTick()
 
             if (所有空單價格距離賣價大於價差(外網格寬度))
             {
-                if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                if (下空單())
                 {
                     更新價位();
                 }
@@ -1220,7 +1024,7 @@ void OnTick()
                 平獲利多單();
                 if (讀取空單數量() < 9)
                 {
-                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    if (下空單())
                     {
                         更新價位();
                     }
@@ -1278,7 +1082,7 @@ void OnTick()
                 平獲利空單();
                 if (讀取多單數量() < 9)
                 {
-                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    if (下多單())
                     {
                         更新價位();
                     }
@@ -1306,7 +1110,7 @@ void OnTick()
 
                 if (多單最低價() > (Ask + 內網格寬度))
                 {
-                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    if (下多單())
                     {
                         更新價位();
                     }
@@ -1321,7 +1125,7 @@ void OnTick()
 
             if (所有多單價格距離買價大於價差(外網格寬度))
             {
-                if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                if (下多單())
                 {
                     更新價位();
                 }
@@ -1343,7 +1147,7 @@ void OnTick()
                 平獲利空單();
                 if (讀取多單數量() < 9)
                 {
-                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+                    if (下多單())
                     {
                         更新價位();
                     }
