@@ -14,7 +14,7 @@
 #property version "1.00"
 #property strict
 
-#define TRADE_PAIR "XAUUSD"
+#define TRADE_PAIR "XAUUSD."
 
 // 外部輸入參數
 int MAGIC_NUMBER = 56789;
@@ -390,44 +390,111 @@ bool 空單平倉(int ticket, double lots, double price, int slippage, color arr
     return isClosed;
 }
 
-void 平獲利多單()
+void 獲利市價平倉(int &tickets[], int length)
 {
-    for (int i = 0; i < OrdersTotal(); i++)
+    for (int i = 0; i < length; i++)
     {
-        if (OrderSelect(i, SELECT_BY_POS))
+        if (OrderSelect(tickets[i], SELECT_BY_TICKET))
         {
-            double oOP = OrderOpenPrice();
-            RefreshRates();
-            double bidPrice = Bid;
+            bool isClosed = false;
+            int count = 0;
 
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP)
+            int type = OrderType();
+            double lots = OrderLots();
+
+            if (type == OP_BUY)
             {
-                double lots = OrderLots();
-                double price = Bid;
-                多單平倉(OrderTicket(), lots, price, 0, clrNONE);
+                if (BID() > OrderOpenPrice())
+                {
+                    while (isClosed == false && count < 10)
+                    {
+                        isClosed = OrderClose(tickets[i], lots, BID(), 10, clrNONE);
+                        count++;
+                    }
+
+                    if (isClosed)
+                    {
+                        記錄多單變化與單號(-lots, tickets[i]);
+                    }
+                    else
+                    {
+                        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                    }
+                }
             }
+            else if (type == OP_SELL)
+            {
+                if (OrderOpenPrice() > ASK())
+                {
+                    while (isClosed == false && count < 10)
+                    {
+                        isClosed = OrderClose(tickets[i], lots, ASK(), 10, clrNONE);
+                        count++;
+                    }
+
+                    if (isClosed)
+                    {
+                        記錄空單變化與單號(-lots, tickets[i]);
+                    }
+                    else
+                    {
+                        紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
+                    }
+                }
+            }
+        }
+        else
+        {
+            紀錄LOG(StringConcatenate("[ERROR][Closing Order Failed]:", GetLastError()));
         }
     }
 }
 
+void 平獲利多單()
+{
+    // for (int i = 0; i < OrdersTotal(); i++)
+    // {
+    //     if (OrderSelect(i, SELECT_BY_POS))
+    //     {
+    //         double oOP = OrderOpenPrice();
+    //         RefreshRates();
+    //         double bidPrice = Bid;
+
+    //         if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP)
+    //         {
+    //             double lots = OrderLots();
+    //             double price = Bid;
+    //             多單平倉(OrderTicket(), lots, price, 0, clrNONE);
+    //         }
+    //     }
+    // }
+    持單訊息 多單訊息 = 讀取多單數量與單號();
+
+    獲利市價平倉(多單訊息.單號, 多單訊息.單量);
+}
+
 void 平獲利空單()
 {
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (OrderSelect(i, SELECT_BY_POS))
-        {
-            double oOP = OrderOpenPrice();
-            RefreshRates();
-            double askPrice = Ask;
+    // for (int i = 0; i < OrdersTotal(); i++)
+    // {
+    //     if (OrderSelect(i, SELECT_BY_POS))
+    //     {
+    //         double oOP = OrderOpenPrice();
+    //         RefreshRates();
+    //         double askPrice = Ask;
 
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice)
-            {
-                double lots = OrderLots();
-                double price = Ask;
-                空單平倉(OrderTicket(), lots, price, 0, clrNONE);
-            }
-        }
-    }
+    //         if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice)
+    //         {
+    //             double lots = OrderLots();
+    //             double price = Ask;
+    //             空單平倉(OrderTicket(), lots, price, 0, clrNONE);
+    //         }
+    //     }
+    // }
+
+    持單訊息 空單訊息 = 讀取空單數量與單號();
+
+    獲利市價平倉(空單訊息.單號, 空單訊息.單量);
 }
 
 bool 所有多單虧損()
@@ -1244,8 +1311,6 @@ void OnTick()
 
         if (Bid - Ask紀錄 > 內網格寬度)
         {
-            紀錄LOG(StringConcatenate("C區間，發生上漲，時間：", TimeCurrent()));
-
             bool 是否有獲利多單 = 有獲利多單();
 
             if (是否有獲利多單)
@@ -1294,10 +1359,10 @@ void OnTick()
         //內網格寬度改為2
         if (Bid紀錄 - Ask > 外網格寬度)
         {
-            紀錄LOG(StringConcatenate("C區間，繼續下跌，時間：", TimeCurrent()));
 
             if (所有空單價格距離賣價大於價差(外網格寬度))
             {
+                紀錄LOG(StringConcatenate("C區間，繼續下跌，所有空單價格距離賣價大於價差，時間：", TimeCurrent()));
                 if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
                 {
                     更新價位();
@@ -1309,7 +1374,6 @@ void OnTick()
     {
         if (Bid - Ask紀錄 > 內網格寬度)
         {
-            紀錄LOG(StringConcatenate("D區間，發生上漲，時間：", TimeCurrent()));
 
             bool 是否有獲利多單 = 有獲利多單();
 
@@ -1367,7 +1431,6 @@ void OnTick()
     {
         if (Bid紀錄 - Ask > 內網格寬度)
         {
-            紀錄LOG(StringConcatenate("E區間，發生下跌，時間：", TimeCurrent()));
 
             bool 是否有獲利空單 = 有獲利空單();
 
@@ -1417,10 +1480,10 @@ void OnTick()
         //內網格寬度2
         if (Bid - Ask紀錄 > 外網格寬度)
         {
-            紀錄LOG(StringConcatenate("E區間，發生上漲，時間：", TimeCurrent()));
 
             if (所有多單價格距離買價大於價差(外網格寬度))
             {
+                紀錄LOG(StringConcatenate("E區間，發生上漲，所有多單價格距離買價大於價差，時間：", TimeCurrent()));
                 if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
                 {
                     更新價位();
