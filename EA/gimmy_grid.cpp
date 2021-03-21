@@ -452,22 +452,6 @@ void 獲利市價平倉(int &tickets[], int length)
 
 void 平獲利多單()
 {
-    // for (int i = 0; i < OrdersTotal(); i++)
-    // {
-    //     if (OrderSelect(i, SELECT_BY_POS))
-    //     {
-    //         double oOP = OrderOpenPrice();
-    //         RefreshRates();
-    //         double bidPrice = Bid;
-
-    //         if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP)
-    //         {
-    //             double lots = OrderLots();
-    //             double price = Bid;
-    //             多單平倉(OrderTicket(), lots, price, 0, clrNONE);
-    //         }
-    //     }
-    // }
     持單訊息 多單訊息 = 讀取多單數量與單號();
 
     獲利市價平倉(多單訊息.單號, 多單訊息.單量);
@@ -475,23 +459,6 @@ void 平獲利多單()
 
 void 平獲利空單()
 {
-    // for (int i = 0; i < OrdersTotal(); i++)
-    // {
-    //     if (OrderSelect(i, SELECT_BY_POS))
-    //     {
-    //         double oOP = OrderOpenPrice();
-    //         RefreshRates();
-    //         double askPrice = Ask;
-
-    //         if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice)
-    //         {
-    //             double lots = OrderLots();
-    //             double price = Ask;
-    //             空單平倉(OrderTicket(), lots, price, 0, clrNONE);
-    //         }
-    //     }
-    // }
-
     持單訊息 空單訊息 = 讀取空單數量與單號();
 
     獲利市價平倉(空單訊息.單號, 空單訊息.單量);
@@ -1066,57 +1033,11 @@ void 記錄多空價格()
     }
 }
 
-// void 初始設定LOG檔()
-// {
-//     LOG檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
-//     LOG檔案 = FileOpen(LOG檔名, FILE_CSV | FILE_READ | FILE_WRITE);
-// }
-
-// void 檢查LOG檔()
-// {
-//     string LOG新檔名 = StringConcatenate(Year(), "-", Month(), "-", Day(), "-log-", MAGIC_NUMBER, ".csv");
-//     if (LOG檔名 != LOG新檔名)
-//     {
-//         if (LOG檔案 != INVALID_HANDLE)
-//         {
-//             FileClose(LOG檔案);
-//         }
-//         else
-//         {
-//             Print("LOG檔名檢查更新失敗", GetLastError());
-//         }
-
-//         LOG檔案 = FileOpen(LOG新檔名, FILE_CSV | FILE_READ | FILE_WRITE);
-//     }
-// }
-
 void 紀錄LOG(string 訊息)
 {
     訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER, "--Ask:", Ask, "--Bid:", Bid, "--Ask紀錄:", Ask紀錄, "--Bid紀錄:", Bid紀錄, "--Time:", TimeCurrent());
     Print(訊息);
-
-    // if (LOG檔案 != INVALID_HANDLE)
-    // {
-    //     FileSeek(LOG檔案, 0, SEEK_END);
-    //     FileWrite(LOG檔案, 訊息);
-    // }
-    // else
-    // {
-    //     Print("紀錄LOG失敗!!", GetLastError());
-    // }
 }
-
-// void 關閉LOG檔()
-// {
-//     if (LOG檔案 != INVALID_HANDLE)
-//     {
-//         FileClose(LOG檔案);
-//     }
-//     else
-//     {
-//         Print("關閉LOG檔失敗!!", GetLastError());
-//     }
-// }
 
 double Abs(double value)
 {
@@ -1206,8 +1127,6 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    // 關閉LOG檔();
-
     記錄多空價格();
     //---
 }
@@ -1368,6 +1287,11 @@ void OnTick()
                     更新價位();
                 }
             }
+            else
+            {
+                紀錄LOG(StringConcatenate("C區間，繼續下跌，有空單價格距離賣價小於價差，時間：", TimeCurrent()));
+                更新價位();
+            }
         }
     }
     else if (status == "D")
@@ -1488,6 +1412,11 @@ void OnTick()
                 {
                     更新價位();
                 }
+            }
+            else
+            {
+                紀錄LOG(StringConcatenate("E區間，發生上漲，有多單價格距離買價小於價差，時間：", TimeCurrent()));
+                更新價位();
             }
         }
     }
