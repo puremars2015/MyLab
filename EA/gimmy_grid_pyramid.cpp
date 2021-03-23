@@ -1274,7 +1274,12 @@ void OnTick()
                 做sell單數 = 1;
             }
 
-            下單(TRADE_PAIR, OP_SELL, 單位手數 * 做sell單數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+            for (int i = 0; i < 做sell單數; i++)
+            {
+                下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+            }
+
+            更新價位();
         }
 
         //下跌一網格
@@ -1307,7 +1312,12 @@ void OnTick()
                 做buy單數 = 1;
             }
 
-            下單(TRADE_PAIR, OP_BUY, 單位手數 * 做buy單數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+            if (int i = 0; i < 做buy單數; i++)
+            {
+                下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+            }
+
+            更新價位();
         }
     }
 }
