@@ -663,8 +663,6 @@ void 平二分之一最大獲利空單()
 
     ArrayResize(掛單資訊陣列, 空單數量);
 
-    ArrayInitialize(掛單資訊陣列, EMPTY_VALUE);
-
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
     掛單資訊陣列由高至低排序(掛單資訊陣列, length);
@@ -689,8 +687,6 @@ void 平二分之一最大獲利多單()
     int 預平多單數量 = 獲利多單數量 / 2;
 
     ArrayResize(掛單資訊陣列, 多單數量);
-
-    ArrayInitialize(掛單資訊陣列, EMPTY_VALUE);
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
