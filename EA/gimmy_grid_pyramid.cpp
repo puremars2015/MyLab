@@ -1312,7 +1312,7 @@ void OnTick()
                 做buy單數 = 1;
             }
 
-            if (int i = 0; i < 做buy單數; i++)
+            for (int i = 0; i < 做buy單數; i++)
             {
                 下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
             }
