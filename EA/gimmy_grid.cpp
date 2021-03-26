@@ -9,6 +9,9 @@
 // 2、有賺就可以平、暫時不考慮要超越單網格寬度
 // 強化穩定度參考 https://www.earnforex.com/blog/ordersend-error-129-what-to-do/
 
+// bug 最遠一二三單，會因為可能有先被平倉的單，導致順序改變
+
+
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link "https://www.mql5.com"
 #property version "1.00"
@@ -588,7 +591,7 @@ void 平損失最多的空單直到空單剩下九張()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
 
     空單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -607,7 +610,7 @@ void 平損失最多的多單直到多單剩下九張()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -700,7 +703,7 @@ double 最遠多單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -711,7 +714,7 @@ double 第二遠多單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -722,7 +725,7 @@ double 第三遠多單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -733,7 +736,7 @@ double 最遠空單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
 
     空單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -744,7 +747,7 @@ double 第二遠空單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
 
     空單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -755,7 +758,7 @@ double 第三遠空單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
 
     空單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -766,7 +769,7 @@ double 平最遠多單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -784,7 +787,7 @@ double 平第二遠多單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -802,7 +805,7 @@ double 平第三遠多單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
 
     多單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -820,7 +823,7 @@ double 平最遠空單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
 
     空單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -838,7 +841,7 @@ double 平第二遠空單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
 
     空單掛單資訊陣列排序(掛單資訊陣列, length);
 
@@ -856,7 +859,7 @@ double 平第三遠空單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
 
     空單掛單資訊陣列排序(掛單資訊陣列, length);
 
