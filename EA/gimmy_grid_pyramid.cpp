@@ -109,7 +109,7 @@ int 讀取獲利多單數量()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && ASK() < OrderOpenPrice())
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && ASK() > OrderOpenPrice())
             {
                 多單數量++;
             }
@@ -659,7 +659,7 @@ void 平二分之一最大獲利空單()
 
     int 獲利空單數量 = 讀取獲利空單數量();
 
-    int 預平空單數量 = 獲利空單數量 / 2;
+    int 預平空單數量 = 獲利空單數量 == 1 ? 1 : 獲利空單數量 / 2;
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
 
@@ -682,7 +682,7 @@ void 平二分之一最大獲利多單()
 
     int 獲利多單數量 = 讀取獲利多單數量();
 
-    int 預平多單數量 = 獲利多單數量 / 2;
+    int 預平多單數量 = 獲利多單數量 == 1 ? 1 : 獲利多單數量 / 2;
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
 
@@ -1110,7 +1110,7 @@ void 記錄多空價格()
 
 void 紀錄LOG(string 訊息)
 {
-    訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER, "--Ask:", Ask, "--Bid:", Bid, "--Ask紀錄:", Ask紀錄, "--Bid紀錄:", Bid紀錄, "--Time:", TimeCurrent());
+    訊息 = StringConcatenate(訊息, "[GROUP CODE:", MAGIC_NUMBER, "][Ask:", Ask, "][Bid:", Bid, "][Ask紀錄:", Ask紀錄, "][Bid紀錄:", Bid紀錄, "][Time:", TimeCurrent(), "]");
     Print(訊息);
 }
 
@@ -1249,12 +1249,16 @@ void OnTick()
 
         if ((Bid - Ask紀錄) > 內網格寬度)
         {
+            紀錄LOG(StringConcatenate("向上一網格,[a long:", a, "][b short:", b, "]"));
+
             int 做sell單數 = 0;
             平二分之一最大獲利多單();
             if (a >= b)
             {
                 int buy單數 = 讀取多單數量();
                 int sell單數 = 讀取空單數量();
+
+                紀錄LOG(StringConcatenate("向上一網格,[buy單數量:", buy單數, "][sell單數量:", sell單數, "]"));
 
                 if ((buy單數 - sell單數) < 1)
                 {
@@ -1287,12 +1291,17 @@ void OnTick()
 
         if ((Bid紀錄 - Ask) > 內網格寬度)
         {
+
+            紀錄LOG(StringConcatenate("向下一網格,[a long:", a, "][b short:", b, "]"));
+
             int 做buy單數 = 0;
             平二分之一最大獲利空單();
-            if (a > b)
+            if (b >= a)
             {
                 int buy單數 = 讀取多單數量();
                 int sell單數 = 讀取空單數量();
+
+                紀錄LOG(StringConcatenate("向下一網格,[buy單數量:", buy單數, "][sell單數量:", sell單數, "]"));
 
                 if ((sell單數 - buy單數) < 1)
                 {
