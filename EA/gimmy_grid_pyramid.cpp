@@ -109,7 +109,7 @@ int 讀取獲利多單數量()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && ASK() > OrderOpenPrice())
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && BID() > OrderOpenPrice())
             {
                 多單數量++;
             }
@@ -125,7 +125,7 @@ int 讀取獲利空單數量()
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
-            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > BID())
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > ASK())
             {
                 空單數量++;
             }
