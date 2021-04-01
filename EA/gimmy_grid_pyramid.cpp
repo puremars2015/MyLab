@@ -1,16 +1,8 @@
 //+------------------------------------------------------------------+
-//|                                              gimmy_grid_v1.mq4 |
+//|                                              gimmy_grid_pyramid.mq4 |
 //|                        Copyright 2020, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
-
-// V1版本特性
-// 1、100點處理
-// 2、有賺就可以平、暫時不考慮要超越單網格寬度
-// 強化穩定度參考 https://www.earnforex.com/blog/ordersend-error-129-what-to-do/
-
-// bug 最遠一二三單，會因為可能有先被平倉的單，導致順序改變
-
 
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link "https://www.mql5.com"
@@ -102,6 +94,38 @@ int 讀取空單數量()
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            {
+                空單數量++;
+            }
+        }
+    }
+    return 空單數量;
+}
+
+int 讀取獲利多單數量()
+{
+    int 多單數量 = 0;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && BID() > OrderOpenPrice())
+            {
+                多單數量++;
+            }
+        }
+    }
+    return 多單數量;
+}
+
+int 讀取獲利空單數量()
+{
+    int 空單數量 = 0;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > ASK())
             {
                 空單數量++;
             }
@@ -531,35 +555,8 @@ bool 有獲利空單()
     return false;
 }
 
-void 空單掛單資訊陣列排序(掛單資訊 &掛單資訊陣列[], int 陣列長度)
-{
-    int i, j;
-
-    掛單資訊 temp;
-
-    bool exchanged = true;
-
-    for (i = 0; exchanged && i < 陣列長度 - 1; i++)
-    { /* 外迴圈為排序趟數，len個數進行len-1趟,只有交換過,exchanged值為true才有執行迴圈的必要,否則exchanged值為false不執行迴圈 */
-        exchanged = false;
-        for (j = 0; j < 陣列長度 - 1 - i; j++)
-        { /* 內迴圈為每趟比較的次數，第i趟比較陣列長度-i次  */
-            if (掛單資訊陣列[j].價格 > 掛單資訊陣列[j + 1].價格)
-            { /* 相鄰元素比較，若逆序則互換（升序為左大於右，逆序反之） */
-                temp.價格 = 掛單資訊陣列[j].價格;
-                temp.單號 = 掛單資訊陣列[j].單號;
-                掛單資訊陣列[j].價格 = 掛單資訊陣列[j + 1].價格;
-                掛單資訊陣列[j].單號 = 掛單資訊陣列[j + 1].單號;
-                掛單資訊陣列[j + 1].價格 = temp.價格;
-
-                掛單資訊陣列[j + 1].單號 = temp.單號;
-                exchanged = true; /*只有數值互換過, exchanged才會從false變成true,否則數列已經排序完成,exchanged值仍然為false,沒必要排序 */
-            }
-        }
-    }
-}
-
-void 多單掛單資訊陣列排序(掛單資訊 &掛單資訊陣列[], int 陣列長度)
+//多單由遠而近排序
+void 掛單資訊陣列由高至低排序(掛單資訊 &掛單資訊陣列[], int 陣列長度)
 {
     int i, j;
 
@@ -587,13 +584,42 @@ void 多單掛單資訊陣列排序(掛單資訊 &掛單資訊陣列[], int 陣�
     }
 }
 
+//空單由遠而近排序
+void 掛單資訊陣列由低至高排序(掛單資訊 &掛單資訊陣列[], int 陣列長度)
+{
+    int i, j;
+
+    掛單資訊 temp;
+
+    bool exchanged = true;
+
+    for (i = 0; exchanged && i < 陣列長度 - 1; i++)
+    { /* 外迴圈為排序趟數，len個數進行len-1趟,只有交換過,exchanged值為true才有執行迴圈的必要,否則exchanged值為false不執行迴圈 */
+        exchanged = false;
+        for (j = 0; j < 陣列長度 - 1 - i; j++)
+        { /* 內迴圈為每趟比較的次數，第i趟比較陣列長度-i次  */
+            if (掛單資訊陣列[j].價格 > 掛單資訊陣列[j + 1].價格)
+            { /* 相鄰元素比較，若逆序則互換（升序為左大於右，逆序反之） */
+                temp.價格 = 掛單資訊陣列[j].價格;
+                temp.單號 = 掛單資訊陣列[j].單號;
+                掛單資訊陣列[j].價格 = 掛單資訊陣列[j + 1].價格;
+                掛單資訊陣列[j].單號 = 掛單資訊陣列[j + 1].單號;
+                掛單資訊陣列[j + 1].價格 = temp.價格;
+
+                掛單資訊陣列[j + 1].單號 = temp.單號;
+                exchanged = true; /*只有數值互換過, exchanged才會從false變成true,否則數列已經排序完成,exchanged值仍然為false,沒必要排序 */
+            }
+        }
+    }
+}
+
 void 平損失最多的空單直到空單剩下九張()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     int 需平張數 = length - 9;
 
@@ -610,9 +636,9 @@ void 平損失最多的多單直到多單剩下九張()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     int 需平張數 = length - 9;
 
@@ -621,6 +647,52 @@ void 平損失最多的多單直到多單剩下九張()
         if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
         {
             多單平倉(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
+        }
+    }
+}
+
+void 平二分之一最大獲利空單()
+{
+    掛單資訊 掛單資訊陣列[100];
+
+    int 空單數量 = 讀取空單數量();
+
+    int 獲利空單數量 = 讀取獲利空單數量();
+
+    int 預平空單數量 = 獲利空單數量 == 1 ? 1 : 獲利空單數量 / 2;
+
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
+
+    for (int i = 0; i < 預平空單數量; i++)
+    {
+        if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
+        {
+            空單平倉(OrderTicket(), OrderLots(), ASK(), 0, clrNONE);
+        }
+    }
+}
+
+void 平二分之一最大獲利多單()
+{
+    掛單資訊 掛單資訊陣列[100];
+
+    int 多單數量 = 讀取多單數量();
+
+    int 獲利多單數量 = 讀取獲利多單數量();
+
+    int 預平多單數量 = 獲利多單數量 == 1 ? 1 : 獲利多單數量 / 2;
+
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
+
+    for (int i = 0; i < 預平多單數量; i++)
+    {
+        if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
+        {
+            多單平倉(OrderTicket(), OrderLots(), BID(), 0, clrNONE);
         }
     }
 }
@@ -703,9 +775,9 @@ double 最遠多單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     return 掛單資訊陣列[0].價格 - Bid;
 }
@@ -714,9 +786,9 @@ double 第二遠多單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     return 掛單資訊陣列[1].價格 - Bid;
 }
@@ -725,9 +797,9 @@ double 第三遠多單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     return 掛單資訊陣列[2].價格 - Bid;
 }
@@ -736,9 +808,9 @@ double 最遠空單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     return Ask - 掛單資訊陣列[0].價格;
 }
@@ -747,9 +819,9 @@ double 第二遠空單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     return Ask - 掛單資訊陣列[1].價格;
 }
@@ -758,9 +830,9 @@ double 第三遠空單損失()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     return Ask - 掛單資訊陣列[2].價格;
 }
@@ -769,9 +841,9 @@ double 平最遠多單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     double 平倉價 = Bid;
 
@@ -787,9 +859,9 @@ double 平第二遠多單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     double 平倉價 = Bid;
 
@@ -805,9 +877,9 @@ double 平第三遠多單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     double 平倉價 = Bid;
 
@@ -823,9 +895,9 @@ double 平最遠空單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     double 平倉價 = Ask;
 
@@ -841,9 +913,9 @@ double 平第二遠空單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     double 平倉價 = Ask;
 
@@ -859,9 +931,9 @@ double 平第三遠空單()
 {
     掛單資訊 掛單資訊陣列[18];
 
-    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     double 平倉價 = Ask;
 
@@ -1038,7 +1110,7 @@ void 記錄多空價格()
 
 void 紀錄LOG(string 訊息)
 {
-    訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER, "--Ask:", Ask, "--Bid:", Bid, "--Ask紀錄:", Ask紀錄, "--Bid紀錄:", Bid紀錄, "--Time:", TimeCurrent());
+    訊息 = StringConcatenate(訊息, "[GROUP CODE:", MAGIC_NUMBER, "][Ask:", Ask, "][Bid:", Bid, "][Ask紀錄:", Ask紀錄, "][Bid紀錄:", Bid紀錄, "][Time:", TimeCurrent(), "]");
     Print(訊息);
 }
 
@@ -1094,9 +1166,6 @@ void 止損處理()
 int OnInit()
 {
     //---
-
-    // 初始設定LOG檔();
-
     int longTicketCount = 0;
     int shortTicketCount = 0;
 
@@ -1142,8 +1211,6 @@ string status = "";
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    止損處理();
-
     if (讀取多單數量() == 0 && 讀取空單數量() == 0)
     {
         if (status != "A")
@@ -1153,48 +1220,12 @@ void OnTick()
             更新價位();
         }
     }
-    else if (讀取多單數量() < 9 && 讀取空單數量() < 9)
+    else
     {
         if (status != "B")
         {
             status = "B";
             紀錄LOG(StringConcatenate("移動區間到B，時間:", TimeCurrent()));
-            更新價位();
-        }
-    }
-    else if (讀取多單數量() >= 9 && 所有多單虧損() && 讀取空單數量() < 18)
-    {
-        if (status != "C")
-        {
-            status = "C";
-            紀錄LOG(StringConcatenate("移動區間到C，時間:", TimeCurrent()));
-            更新價位();
-        }
-    }
-    else if (讀取多單數量() >= 9 && 所有多單虧損() && 讀取空單數量() == 18)
-    {
-        if (status != "D")
-        {
-            status = "D";
-            紀錄LOG(StringConcatenate("移動區間到D，時間:", TimeCurrent()));
-            更新價位();
-        }
-    }
-    else if (讀取空單數量() >= 9 && 所有空單虧損() && 讀取多單數量() < 18)
-    {
-        if (status != "E")
-        {
-            status = "E";
-            紀錄LOG(StringConcatenate("移動區間到E，時間:", TimeCurrent()));
-            更新價位();
-        }
-    }
-    else if (讀取空單數量() >= 9 && 所有空單虧損() && 讀取多單數量() == 18)
-    {
-        if (status != "F")
-        {
-            status = "F";
-            紀錄LOG(StringConcatenate("移動區間到F，時間:", TimeCurrent()));
             更新價位();
         }
     }
@@ -1204,280 +1235,93 @@ void OnTick()
         下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
         下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
     }
-    else if (status == "B")
+    else
     {
+        //上漲一網格
+
+        /** 
+         * 多單a張，空b張，若a>=b，上漲一網格，平1/2最大獲利多單總數後，
+         * 並sell （(buy單數-sell單數)/2)取整數值，但小於一或負值時均為1，
+         * 若a<b，上漲一網格，平1/2最大獲利buy總數，並sell0.01，反向亦然 */
+
+        int a = 讀取多單數量();
+        int b = 讀取空單數量();
+
         if ((Bid - Ask紀錄) > 內網格寬度)
         {
-            紀錄LOG(StringConcatenate("B區間，發生上漲，時間：", TimeCurrent()));
+            紀錄LOG(StringConcatenate("向上一網格,[a long:", a, "][b short:", b, "]"));
 
-            平獲利多單();
-            if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+            int 做sell單數 = 0;
+            平二分之一最大獲利多單();
+            if (a >= b)
             {
-                更新價位();
+                int buy單數 = 讀取多單數量();
+                int sell單數 = 讀取空單數量();
+
+                紀錄LOG(StringConcatenate("向上一網格,[buy單數量:", buy單數, "][sell單數量:", sell單數, "]"));
+
+                if ((buy單數 - sell單數) < 1)
+                {
+                    做sell單數 = 1;
+                }
+                else
+                {
+                    做sell單數 = (buy單數 - sell單數) / 2;
+                }
             }
+            else
+            {
+                做sell單數 = 1;
+            }
+
+            for (int i = 0; i < 做sell單數; i++)
+            {
+                下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+            }
+
+            更新價位();
         }
+
+        //下跌一網格
+
+        /** 
+         * 若a>b，下跌一網格，平1/2最大獲利sell單總數，並buy0.01，
+         * 若a<=b，平1/2最大獲利sell單總數後，並buy((sell總數-buy總數）/2）取整數，
+         * 但小於一或負值時為1 */
 
         if ((Bid紀錄 - Ask) > 內網格寬度)
         {
-            紀錄LOG(StringConcatenate("B區間，發生下跌，時間：", TimeCurrent()));
 
-            平獲利空單();
-            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+            紀錄LOG(StringConcatenate("向下一網格,[a long:", a, "][b short:", b, "]"));
+
+            int 做buy單數 = 0;
+            平二分之一最大獲利空單();
+            if (b >= a)
             {
-                更新價位();
-            }
-        }
-    }
-    else if (status == "C")
-    {
+                int buy單數 = 讀取多單數量();
+                int sell單數 = 讀取空單數量();
 
-        if (Bid - Ask紀錄 > 內網格寬度)
-        {
-            bool 是否有獲利多單 = 有獲利多單();
+                紀錄LOG(StringConcatenate("向下一網格,[buy單數量:", buy單數, "][sell單數量:", sell單數, "]"));
 
-            if (是否有獲利多單)
-            {
-                紀錄LOG(StringConcatenate("C區間，發生上漲，有獲利多單，時間：", TimeCurrent()));
-
-                平獲利多單();
-                if (讀取空單數量() < 9)
+                if ((sell單數 - buy單數) < 1)
                 {
-                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
-                    {
-                        更新價位();
-                    }
+                    做buy單數 = 1;
                 }
-                else if (讀取空單數量() > 9)
+                else
                 {
-                    平損失最多的空單直到空單剩下九張();
-                    更新價位();
-                }
-            }
-
-            bool 是否有獲利空單 = 有獲利空單();
-
-            if (是否有獲利空單)
-            {
-                紀錄LOG(StringConcatenate("C區間，發生上漲，有獲利空單，時間：", TimeCurrent()));
-
-                平獲利空單();
-                更新價位();
-            }
-
-            if (!是否有獲利多單 && !是否有獲利空單)
-            {
-                紀錄LOG(StringConcatenate("C區間，發生上漲，沒有獲利多空單，時間：", TimeCurrent()));
-
-                if (Bid > (空單最高價() + 內網格寬度))
-                {
-                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
-                    {
-                        更新價位();
-                    }
-                }
-            }
-        }
-
-        //內網格寬度改為2
-        if (Bid紀錄 - Ask > 外網格寬度)
-        {
-
-            if (所有空單價格距離賣價大於價差(外網格寬度))
-            {
-                紀錄LOG(StringConcatenate("C區間，繼續下跌，所有空單價格距離賣價大於價差，時間：", TimeCurrent()));
-                if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
-                {
-                    更新價位();
+                    做buy單數 = (sell單數 - buy單數) / 2;
                 }
             }
             else
             {
-                紀錄LOG(StringConcatenate("C區間，繼續下跌，有空單價格距離賣價小於價差，時間：", TimeCurrent()));
-                更新價位();
+                做buy單數 = 1;
             }
-        }
-    }
-    else if (status == "D")
-    {
-        if (Bid - Ask紀錄 > 內網格寬度)
-        {
 
-            bool 是否有獲利多單 = 有獲利多單();
-
-            if (是否有獲利多單)
+            for (int i = 0; i < 做buy單數; i++)
             {
-                紀錄LOG(StringConcatenate("D區間，發生上漲，有獲利多單，時間：", TimeCurrent()));
-
-                平獲利多單();
-                if (讀取空單數量() < 9)
-                {
-                    if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
-                    {
-                        更新價位();
-                    }
-                }
-                else if (讀取空單數量() > 9)
-                {
-                    平損失最多的空單直到空單剩下九張();
-                    更新價位();
-                }
+                下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
             }
 
-            bool 是否有獲利空單 = 有獲利空單();
-
-            if (是否有獲利空單)
-            {
-                紀錄LOG(StringConcatenate("D區間，發生上漲，有獲利空單，時間：", TimeCurrent()));
-
-                平獲利空單();
-                更新價位();
-            }
-
-            if (!是否有獲利多單 && !是否有獲利空單)
-            {
-                紀錄LOG(StringConcatenate("D區間，發生上漲，沒有獲利多空單，時間：", TimeCurrent()));
-
-                if (讀取空單數量() > 9)
-                {
-                    平損失最多的空單直到空單剩下九張();
-                }
-                更新價位();
-            }
-        }
-
-        //內網格寬度2
-        if (Bid紀錄 - Ask > 外網格寬度)
-        {
-            紀錄LOG(StringConcatenate("D區間，發生下跌，時間：", TimeCurrent()));
-
-            平獲利空單();
-            更新價位();
-        }
-    }
-    else if (status == "E")
-    {
-        if (Bid紀錄 - Ask > 內網格寬度)
-        {
-
-            bool 是否有獲利空單 = 有獲利空單();
-
-            if (是否有獲利空單)
-            {
-                紀錄LOG(StringConcatenate("E區間，發生下跌，有獲利空單，時間：", TimeCurrent()));
-
-                平獲利空單();
-                if (讀取多單數量() < 9)
-                {
-                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
-                    {
-                        更新價位();
-                    }
-                }
-                else if (讀取多單數量() > 9)
-                {
-                    平損失最多的多單直到多單剩下九張();
-                    更新價位();
-                }
-            }
-
-            bool 是否有獲利多單 = 有獲利多單();
-
-            if (是否有獲利多單)
-            {
-                紀錄LOG(StringConcatenate("E區間，發生下跌，有獲利多單，時間：", TimeCurrent()));
-
-                平獲利多單();
-                更新價位();
-            }
-
-            if (!是否有獲利多單 && !是否有獲利空單)
-            {
-                紀錄LOG(StringConcatenate("E區間，發生下跌，沒有獲利多空單，時間：", TimeCurrent()));
-
-                if (多單最低價() > (Ask + 內網格寬度))
-                {
-                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
-                    {
-                        更新價位();
-                    }
-                }
-            }
-        }
-
-        //內網格寬度2
-        if (Bid - Ask紀錄 > 外網格寬度)
-        {
-
-            if (所有多單價格距離買價大於價差(外網格寬度))
-            {
-                紀錄LOG(StringConcatenate("E區間，發生上漲，所有多單價格距離買價大於價差，時間：", TimeCurrent()));
-                if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
-                {
-                    更新價位();
-                }
-            }
-            else
-            {
-                紀錄LOG(StringConcatenate("E區間，發生上漲，有多單價格距離買價小於價差，時間：", TimeCurrent()));
-                更新價位();
-            }
-        }
-    }
-    else if (status == "F")
-    {
-        if (Bid紀錄 - Ask > 內網格寬度)
-        {
-            紀錄LOG(StringConcatenate("F區間，發生下跌，時間：", TimeCurrent()));
-
-            bool 是否有獲利空單 = 有獲利空單();
-
-            if (是否有獲利空單)
-            {
-                紀錄LOG(StringConcatenate("F區間，發生下跌，有獲利空單，時間：", TimeCurrent()));
-
-                平獲利空單();
-                if (讀取多單數量() < 9)
-                {
-                    if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
-                    {
-                        更新價位();
-                    }
-                }
-                else if (讀取多單數量() > 9)
-                {
-                    平損失最多的多單直到多單剩下九張();
-                    更新價位();
-                }
-            }
-
-            bool 是否有獲利多單 = 有獲利多單();
-
-            if (是否有獲利多單)
-            {
-                紀錄LOG(StringConcatenate("F區間，發生下跌，有獲利多單，時間：", TimeCurrent()));
-
-                平獲利多單();
-                更新價位();
-            }
-
-            if (!是否有獲利多單 && !是否有獲利空單)
-            {
-                紀錄LOG(StringConcatenate("F區間，發生下跌，沒有獲利多空單，時間：", TimeCurrent()));
-
-                if (讀取多單數量() > 9)
-                {
-                    平損失最多的多單直到多單剩下九張();
-                }
-                更新價位();
-            }
-        }
-
-        //內網格寬度2
-        if (Bid - Ask紀錄 > 外網格寬度)
-        {
-            紀錄LOG(StringConcatenate("F區間，發生上漲，時間：", TimeCurrent()));
-
-            平獲利多單();
             更新價位();
         }
     }
