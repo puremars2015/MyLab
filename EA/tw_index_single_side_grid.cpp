@@ -1063,7 +1063,7 @@ void 記錄多空價格()
 
 void 紀錄LOG(string 訊息)
 {
-    訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER, "--Ask:", Ask, "--Bid:", Bid, "--Ask紀錄:", Ask紀錄, "--Bid紀錄:", Bid紀錄, "--Time:", TimeCurrent());
+    訊息 = StringConcatenate(訊息, "[GROUP CODE:", MAGIC_NUMBER, "][Ask:", Ask, "][Bid:", Bid, "][Ask紀錄:", Ask紀錄, "][Bid紀錄:", Bid紀錄, "][Time:", TimeCurrent(), "]");
     Print(訊息);
 }
 
@@ -1169,6 +1169,14 @@ string status = "";
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    
+    if (讀取多單數量() == 0 && 讀取空單數量() == 0)
+    {
+        下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
+        更新價位();
+    }
+    else
+    {
+        
+    }
 }
 //+------------------------------------------------------------------+
