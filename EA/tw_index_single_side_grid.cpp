@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                   tw_index_single_side_gride.mq4 |
+//|                                              gimmy_grid_pyramid.mq4 |
 //|                        Copyright 2020, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -9,12 +9,12 @@
 #property version "1.00"
 #property strict
 
-#define TRADE_PAIR "XAUUSD."
+#define TRADE_PAIR "TAIWAN"
 
 // 外部輸入參數
-int MAGIC_NUMBER = 0;
+int MAGIC_NUMBER = 20210524;
 
-double 單位手數 = 0.4;
+double 單位手數 = 0.03;
 
 class 掛單資訊
 {
@@ -43,8 +43,8 @@ public:
 // 賣價(Ask)：金融機構賣給投資人的價格 <<投資人要買債券看Ask
 // 買價(Bid)：金融機構跟投資人買的價格 <<投資人要賣債券看Bid
 
-double 內網格寬度 = 3;
-double 外網格寬度 = 2;
+double 內網格寬度 = 200;
+double 外網格寬度 = 200;
 
 double Bid紀錄 = 0;
 double Ask紀錄 = 0;
@@ -94,6 +94,38 @@ int 讀取空單數量()
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER)
+            {
+                空單數量++;
+            }
+        }
+    }
+    return 空單數量;
+}
+
+int 讀取獲利多單數量()
+{
+    int 多單數量 = 0;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && ASK() < OrderOpenPrice())
+            {
+                多單數量++;
+            }
+        }
+    }
+    return 多單數量;
+}
+
+int 讀取獲利空單數量()
+{
+    int 空單數量 = 0;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && OrderOpenPrice() > BID())
             {
                 空單數量++;
             }
@@ -447,22 +479,6 @@ void 獲利市價平倉(int &tickets[], int length)
 
 void 平獲利多單()
 {
-    // for (int i = 0; i < OrdersTotal(); i++)
-    // {
-    //     if (OrderSelect(i, SELECT_BY_POS))
-    //     {
-    //         double oOP = OrderOpenPrice();
-    //         RefreshRates();
-    //         double bidPrice = Bid;
-
-    //         if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER && bidPrice > oOP)
-    //         {
-    //             double lots = OrderLots();
-    //             double price = Bid;
-    //             多單平倉(OrderTicket(), lots, price, 0, clrNONE);
-    //         }
-    //     }
-    // }
     持單訊息 多單訊息 = 讀取多單數量與單號();
 
     獲利市價平倉(多單訊息.單號, 多單訊息.單量);
@@ -470,23 +486,6 @@ void 平獲利多單()
 
 void 平獲利空單()
 {
-    // for (int i = 0; i < OrdersTotal(); i++)
-    // {
-    //     if (OrderSelect(i, SELECT_BY_POS))
-    //     {
-    //         double oOP = OrderOpenPrice();
-    //         RefreshRates();
-    //         double askPrice = Ask;
-
-    //         if (OrderType() == OP_SELL && OrderMagicNumber() == MAGIC_NUMBER && oOP > askPrice)
-    //         {
-    //             double lots = OrderLots();
-    //             double price = Ask;
-    //             空單平倉(OrderTicket(), lots, price, 0, clrNONE);
-    //         }
-    //     }
-    // }
-
     持單訊息 空單訊息 = 讀取空單數量與單號();
 
     獲利市價平倉(空單訊息.單號, 空單訊息.單量);
@@ -556,7 +555,8 @@ bool 有獲利空單()
     return false;
 }
 
-void 空單掛單資訊陣列排序(掛單資訊 &掛單資訊陣列[], int 陣列長度)
+//多單由遠而近排序
+void 掛單資訊陣列由高至低排序(掛單資訊 &掛單資訊陣列[], int 陣列長度)
 {
     int i, j;
 
@@ -584,7 +584,8 @@ void 空單掛單資訊陣列排序(掛單資訊 &掛單資訊陣列[], int 陣�
     }
 }
 
-void 多單掛單資訊陣列排序(掛單資訊 &掛單資訊陣列[], int 陣列長度)
+//空單由遠而近排序
+void 掛單資訊陣列由低至高排序(掛單資訊 &掛單資訊陣列[], int 陣列長度)
 {
     int i, j;
 
@@ -618,7 +619,7 @@ void 平損失最多的空單直到空單剩下九張()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     int 需平張數 = length - 9;
 
@@ -637,7 +638,7 @@ void 平損失最多的多單直到多單剩下九張()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     int 需平張數 = length - 9;
 
@@ -646,6 +647,68 @@ void 平損失最多的多單直到多單剩下九張()
         if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
         {
             多單平倉(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
+        }
+    }
+}
+
+void 平二分之一最大獲利空單()
+{
+    掛單資訊 掛單資訊陣列[100];
+
+    int 空單數量 = 讀取空單數量();
+
+    int 獲利空單數量 = 讀取獲利空單數量();
+
+    int 預平空單數量 = 獲利空單數量 / 2;
+
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
+
+    for (int i = 0; i < 預平空單數量; i++)
+    {
+        if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
+        {
+            空單平倉(OrderTicket(), OrderLots(), ASK(), 0, clrNONE);
+        }
+    }
+}
+
+bool 平最大獲利多單()
+{
+    bool isClosed = false;
+
+    掛單資訊 掛單資訊陣列[100];
+
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
+
+    if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
+    {
+        isClosed = 多單平倉(OrderTicket(), OrderLots(), BID(), 0, clrNONE);
+    }
+
+    return isClosed;
+}
+
+void 平二分之一最大獲利多單()
+{
+    掛單資訊 掛單資訊陣列[100];
+
+    int 獲利多單數量 = 讀取獲利多單數量();
+
+    int 預平多單數量 = 獲利多單數量 / 2;
+
+    int length = 掛單陣列給值(掛單資訊陣列, OP_BUY);
+
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
+
+    for (int i = 0; i < 預平多單數量; i++)
+    {
+        if (OrderSelect(掛單資訊陣列[i].單號, SELECT_BY_TICKET))
+        {
+            多單平倉(OrderTicket(), OrderLots(), BID(), 0, clrNONE);
         }
     }
 }
@@ -730,7 +793,7 @@ double 最遠多單損失()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     return 掛單資訊陣列[0].價格 - Bid;
 }
@@ -741,7 +804,7 @@ double 第二遠多單損失()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     return 掛單資訊陣列[1].價格 - Bid;
 }
@@ -752,7 +815,7 @@ double 第三遠多單損失()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     return 掛單資訊陣列[2].價格 - Bid;
 }
@@ -763,7 +826,7 @@ double 最遠空單損失()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     return Ask - 掛單資訊陣列[0].價格;
 }
@@ -774,7 +837,7 @@ double 第二遠空單損失()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     return Ask - 掛單資訊陣列[1].價格;
 }
@@ -785,7 +848,7 @@ double 第三遠空單損失()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     return Ask - 掛單資訊陣列[2].價格;
 }
@@ -796,7 +859,7 @@ double 平最遠多單()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     double 平倉價 = Bid;
 
@@ -814,7 +877,7 @@ double 平第二遠多單()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     double 平倉價 = Bid;
 
@@ -832,7 +895,7 @@ double 平第三遠多單()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_BUY) + 1;
 
-    多單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
 
     double 平倉價 = Bid;
 
@@ -850,7 +913,7 @@ double 平最遠空單()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     double 平倉價 = Ask;
 
@@ -868,7 +931,7 @@ double 平第二遠空單()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     double 平倉價 = Ask;
 
@@ -886,7 +949,7 @@ double 平第三遠空單()
 
     int length = 掛單陣列給值(掛單資訊陣列, OP_SELL) + 1;
 
-    空單掛單資訊陣列排序(掛單資訊陣列, length);
+    掛單資訊陣列由低至高排序(掛單資訊陣列, length);
 
     double 平倉價 = Ask;
 
@@ -1063,7 +1126,7 @@ void 記錄多空價格()
 
 void 紀錄LOG(string 訊息)
 {
-    訊息 = StringConcatenate(訊息, "[GROUP CODE:", MAGIC_NUMBER, "][Ask:", Ask, "][Bid:", Bid, "][Ask紀錄:", Ask紀錄, "][Bid紀錄:", Bid紀錄, "][Time:", TimeCurrent(), "]");
+    訊息 = StringConcatenate(訊息, "--GROUP CODE:", MAGIC_NUMBER, "--Ask:", Ask, "--Bid:", Bid, "--Ask紀錄:", Ask紀錄, "--Bid紀錄:", Bid紀錄, "--Time:", TimeCurrent());
     Print(訊息);
 }
 
@@ -1119,9 +1182,6 @@ void 止損處理()
 int OnInit()
 {
     //---
-
-    // 初始設定LOG檔();
-
     int longTicketCount = 0;
     int shortTicketCount = 0;
 
@@ -1155,8 +1215,6 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    // 關閉LOG檔();
-
     記錄多空價格();
     //---
 }
@@ -1169,14 +1227,42 @@ string status = "";
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    if (讀取多單數量() == 0 && 讀取空單數量() == 0)
+
+    if (讀取多單數量() == 0)
     {
-        下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE);
-        更新價位();
+        //下跌一網格
+        if ((Bid紀錄 - Ask) > 內網格寬度)
+        {
+            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210524", MAGIC_NUMBER, 0, clrNONE))
+            {
+                更新價位();
+            }
+        }
+        
+        if (Bid > Bid紀錄 || Ask > Ask紀錄)
+        {
+            更新價位();
+        }
     }
     else
     {
-        
+        //下跌一網格
+        if ((Bid紀錄 - Ask) > 外網格寬度)
+        {
+            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210524", MAGIC_NUMBER, 0, clrNONE))
+            {
+                更新價位();
+            }
+        }
+
+        //上漲一網格
+        if ((Bid - Ask紀錄) > 外網格寬度)
+        {
+            if(平最大獲利多單())
+            {
+                更新價位();
+            }
+        }
     }
 }
 //+------------------------------------------------------------------+
