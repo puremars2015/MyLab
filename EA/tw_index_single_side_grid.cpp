@@ -12,9 +12,9 @@
 #define TRADE_PAIR "TAIWAN"
 
 // 外部輸入參數
-int MAGIC_NUMBER = 20210524;
+int MAGIC_NUMBER = 20210526;
 
-double 單位手數 = 0.03;
+double 單位手數 = 0.01;
 
 class 掛單資訊
 {
@@ -43,8 +43,8 @@ public:
 // 賣價(Ask)：金融機構賣給投資人的價格 <<投資人要買債券看Ask
 // 買價(Bid)：金融機構跟投資人買的價格 <<投資人要賣債券看Bid
 
-double 內網格寬度 = 200;
-double 外網格寬度 = 200;
+double 內網格寬度 = 150;
+double 外網格寬度 = 150;
 
 double Bid紀錄 = 0;
 double Ask紀錄 = 0;
@@ -1175,6 +1175,38 @@ void 止損處理()
     }
 }
 
+void 更新價位到多單最低價()
+{
+   double lowestLongPrice = 0;
+   bool isRewrite = false; //是否已經被覆寫過
+   
+   for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            {
+               if(!isRewrite)
+               {
+                  lowestLongPrice = OrderOpenPrice();
+                  isRewrite = true;
+               }
+               else
+               {
+                  if (OrderOpenPrice() < lowestLongPrice)
+                  {
+                     lowestLongPrice = OrderOpenPrice();
+                  }
+               }
+            }
+        }
+    }
+    
+    Bid紀錄 = lowestLongPrice - 14;
+    Ask紀錄 = lowestLongPrice;
+    紀錄LOG(StringConcatenate("更新價位至Bid:[", Bid紀錄, "]", "Ask:[", Ask紀錄, "]"));
+}
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -1204,8 +1236,8 @@ int OnInit()
     string 訊息 = StringConcatenate("程式啟動時，多單張數:", longTicketCount, "、", "空單張數:", shortTicketCount, "。", "MAGIC_NUMBER:", MAGIC_NUMBER);
     紀錄LOG(訊息);
 
-    //TODO:這是一個應急的方案，因為目前重啟動無法取得原先紀錄的價格，有空應改為冷儲存
-    更新價位();
+
+    更新價位到多單最低價();
 
     //---
     return (INIT_SUCCEEDED);
@@ -1233,7 +1265,7 @@ void OnTick()
         //下跌一網格
         if ((Bid紀錄 - Ask) > 內網格寬度)
         {
-            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210524", MAGIC_NUMBER, 0, clrNONE))
+            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210609", MAGIC_NUMBER, 0, clrNONE))
             {
                 更新價位();
             }
@@ -1249,7 +1281,7 @@ void OnTick()
         //下跌一網格
         if ((Bid紀錄 - Ask) > 外網格寬度)
         {
-            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210524", MAGIC_NUMBER, 0, clrNONE))
+            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210609", MAGIC_NUMBER, 0, clrNONE))
             {
                 更新價位();
             }
