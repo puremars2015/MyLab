@@ -14,6 +14,8 @@
 // 外部輸入參數
 int MAGIC_NUMBER = 56789;
 
+input string STRATEGY = "";
+
 double 單位手數 = 0.01;
 
 class 掛單資訊
@@ -183,7 +185,6 @@ int 讀取獲利空單數量()
     }
     return 空單訊息;
 }
-
 
 bool 下單(
     string symbol,              // symbol
@@ -650,6 +651,24 @@ void 平損失最多的多單直到多單剩下九張()
             多單平倉(OrderTicket(), OrderLots(), Ask, 0, clrNONE);
         }
     }
+}
+
+bool 平最大獲利空單()
+{
+    bool isClosed = false;
+
+    掛單資訊 掛單資訊陣列[100];
+
+    int length = 掛單陣列給值(掛單資訊陣列, OP_SELL);
+
+    掛單資訊陣列由高至低排序(掛單資訊陣列, length);
+
+    if (OrderSelect(掛單資訊陣列[0].單號, SELECT_BY_TICKET))
+    {
+        isClosed = 空單平倉(OrderTicket(), OrderLots(), ASK(), 0, clrNONE);
+    }
+
+    return isClosed;
 }
 
 void 平二分之一最大獲利空單()
@@ -1222,18 +1241,14 @@ void OnDeinit(const int reason)
 
 string status = "";
 
-//https://www.youtube.com/watch?v=tva-XMSbsLc&vl=en
-//+------------------------------------------------------------------+
-//| Expert tick function                                             |
-//+------------------------------------------------------------------+
-void OnTick()
+void LongStrategy()
 {
     //如果多空為零，開多五張
     if (讀取多單數量() == 0 && 讀取空單數量() == 0)
     {
         for (int i = 0; i < 5; i++)
         {
-            if(下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
             {
                 更新價位();
             }
@@ -1253,11 +1268,76 @@ void OnTick()
         //上漲一網格
         if ((Bid - Ask紀錄) > 內網格寬度)
         {
-            if(平最大獲利多單())
+            if (平最大獲利多單())
             {
                 更新價位();
             }
         }
     }
+}
+
+void MixedStrategy()
+{
+    //如果多空為零，開多一張
+    if (讀取多單數量() == 0 && 讀取空單數量() == 0)
+    {
+        if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+        {
+            更新價位();
+            return;
+        }
+    }
+
+    //如果多單數量小於等於空單就補多單到多單比空單多一張
+    if (讀取多單數量() - 讀取空單數量() < 1)
+    {
+        int 需補多單張數 = 讀取空單數量() - 讀取多單數量() + 1;
+
+        for (int i = 0; i < 需補多單張數; i++)
+        {
+            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+            {
+                更新價位();
+            }
+        }
+        return;
+    }
+
+    //下跌一網格
+    if ((Bid紀錄 - Ask) > 內網格寬度)
+    {
+        if (平最大獲利空單())
+        {
+            更新價位();
+        }
+
+        if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+        {
+            更新價位();
+        }
+    }
+
+    //上漲一網格
+    if ((Bid - Ask紀錄) > 內網格寬度)
+    {
+        if (平最大獲利多單())
+        {
+            更新價位();
+        }
+
+        if (下單(TRADE_PAIR, OP_SELL, 單位手數, Bid, 1, 0, 0, "", MAGIC_NUMBER, 0, clrNONE))
+        {
+            更新價位();
+        }
+    }
+}
+
+//https://www.youtube.com/watch?v=tva-XMSbsLc&vl=en
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    MixedStrategy();
 }
 //+------------------------------------------------------------------+
