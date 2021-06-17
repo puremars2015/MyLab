@@ -1195,6 +1195,38 @@ void 止損處理()
     }
 }
 
+void 更新價位到多單最低價()
+{
+   double lowestLongPrice = 0;
+   bool isRewrite = false; //是否已經被覆寫過
+   
+   for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (OrderSelect(i, SELECT_BY_POS))
+        {
+            if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
+            {
+               if(!isRewrite)
+               {
+                  lowestLongPrice = OrderOpenPrice();
+                  isRewrite = true;
+               }
+               else
+               {
+                  if (OrderOpenPrice() < lowestLongPrice)
+                  {
+                     lowestLongPrice = OrderOpenPrice();
+                  }
+               }
+            }
+        }
+    }
+    
+    Bid紀錄 = lowestLongPrice - 14;
+    Ask紀錄 = lowestLongPrice;
+    紀錄LOG(StringConcatenate("更新價位至Bid:[", Bid紀錄, "]", "Ask:[", Ask紀錄, "]"));
+}
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
