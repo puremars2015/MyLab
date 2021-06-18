@@ -1202,6 +1202,11 @@ void 更新價位到多單最低價()
         }
     }
 
+    if (lowestLongPrice == 0)
+    {
+        lowestLongPrice = ASK();
+    }
+
     Bid紀錄 = lowestLongPrice - 14;
     Ask紀錄 = lowestLongPrice;
     紀錄LOG(StringConcatenate("更新價位至Bid:[", Bid紀錄, "]", "Ask:[", Ask紀錄, "]"));
