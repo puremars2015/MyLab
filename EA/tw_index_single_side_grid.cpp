@@ -43,8 +43,8 @@ public:
 // 賣價(Ask)：金融機構賣給投資人的價格 <<投資人要買債券看Ask
 // 買價(Bid)：金融機構跟投資人買的價格 <<投資人要賣債券看Bid
 
-double 內網格寬度 = 150;
-double 外網格寬度 = 150;
+double 內網格寬度 = 100;
+double 外網格寬度 = 200;
 
 double Bid紀錄 = 0;
 double Ask紀錄 = 0;
@@ -1177,31 +1177,31 @@ void 止損處理()
 
 void 更新價位到多單最低價()
 {
-   double lowestLongPrice = 0;
-   bool isRewrite = false; //是否已經被覆寫過
-   
-   for (int i = 0; i < OrdersTotal(); i++)
+    double lowestLongPrice = 0;
+    bool isRewrite = false; //是否已經被覆寫過
+
+    for (int i = 0; i < OrdersTotal(); i++)
     {
         if (OrderSelect(i, SELECT_BY_POS))
         {
             if (OrderType() == OP_BUY && OrderMagicNumber() == MAGIC_NUMBER)
             {
-               if(!isRewrite)
-               {
-                  lowestLongPrice = OrderOpenPrice();
-                  isRewrite = true;
-               }
-               else
-               {
-                  if (OrderOpenPrice() < lowestLongPrice)
-                  {
-                     lowestLongPrice = OrderOpenPrice();
-                  }
-               }
+                if (!isRewrite)
+                {
+                    lowestLongPrice = OrderOpenPrice();
+                    isRewrite = true;
+                }
+                else
+                {
+                    if (OrderOpenPrice() < lowestLongPrice)
+                    {
+                        lowestLongPrice = OrderOpenPrice();
+                    }
+                }
             }
         }
     }
-    
+
     Bid紀錄 = lowestLongPrice - 14;
     Ask紀錄 = lowestLongPrice;
     紀錄LOG(StringConcatenate("更新價位至Bid:[", Bid紀錄, "]", "Ask:[", Ask紀錄, "]"));
@@ -1236,7 +1236,6 @@ int OnInit()
     string 訊息 = StringConcatenate("程式啟動時，多單張數:", longTicketCount, "、", "空單張數:", shortTicketCount, "。", "MAGIC_NUMBER:", MAGIC_NUMBER);
     紀錄LOG(訊息);
 
-
     更新價位到多單最低價();
 
     //---
@@ -1270,7 +1269,7 @@ void OnTick()
                 更新價位();
             }
         }
-        
+
         if (Bid > Bid紀錄 || Ask > Ask紀錄)
         {
             更新價位();
@@ -1278,21 +1277,44 @@ void OnTick()
     }
     else
     {
-        //下跌一網格
-        if ((Bid紀錄 - Ask) > 外網格寬度)
+        if (讀取多單數量() < 5)
         {
-            if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210609", MAGIC_NUMBER, 0, clrNONE))
+            //下跌一網格
+            if ((Bid紀錄 - Ask) > 內網格寬度)
             {
-                更新價位();
+                if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210609", MAGIC_NUMBER, 0, clrNONE))
+                {
+                    更新價位();
+                }
+            }
+
+            //上漲一網格
+            if ((Bid - Ask紀錄) > 內網格寬度)
+            {
+                if (平最大獲利多單())
+                {
+                    更新價位();
+                }
             }
         }
-
-        //上漲一網格
-        if ((Bid - Ask紀錄) > 外網格寬度)
+        else
         {
-            if(平最大獲利多單())
+            //下跌一網格
+            if ((Bid紀錄 - Ask) > 外網格寬度)
             {
-                更新價位();
+                if (下單(TRADE_PAIR, OP_BUY, 單位手數, Ask, 1, 0, 0, "EA 20210609", MAGIC_NUMBER, 0, clrNONE))
+                {
+                    更新價位();
+                }
+            }
+
+            //上漲一網格
+            if ((Bid - Ask紀錄) > 外網格寬度)
+            {
+                if (平最大獲利多單())
+                {
+                    更新價位();
+                }
             }
         }
     }
