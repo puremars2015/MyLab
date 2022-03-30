@@ -1,0 +1,256 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>股價追蹤面板</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"
+        integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+</head>
+
+<body>
+
+    <div style="height: 600px; width: 800px;">
+        <canvas id="myChart" width="400" height="300"></canvas>
+    </div>
+
+    <script>
+        const BASE_API_URL = "http://220.133.234.2/";
+        const CHART_COLORS = {
+            red: 'rgb(255, 99, 132)',
+            orange: 'rgb(255, 159, 64)',
+            yellow: 'rgb(255, 205, 86)',
+            green: 'rgb(75, 192, 192)',
+            blue: 'rgb(54, 162, 235)',
+            purple: 'rgb(153, 102, 255)',
+            grey: 'rgb(201, 203, 207)'
+        };
+
+        var ctx = document.getElementById('myChart');
+
+        const DATA_COUNT = 12;
+        const labels = [];
+        // for (let i = 0; i < DATA_COUNT; ++i) {
+        //     labels.push(i.toString());
+        // }
+        const datapoints = [];
+        const data = {
+            labels: labels,
+            datasets: [
+                {
+                    label: '模糊化後數據 (%30)',
+                    data: datapoints,
+                    borderColor: CHART_COLORS.red,
+                    fill: false,
+                    // cubicInterpolationMode: 'monotone',
+                    tension: 0
+                },
+                {
+                    label: '模糊化後數據 (%10)',
+                    data: datapoints,
+                    borderColor: CHART_COLORS.blue,
+                    fill: false,
+                    tension: 0
+                },
+                {
+                    label: '原始數據',
+                    data: datapoints,
+                    borderColor: CHART_COLORS.green,
+                    fill: false,
+                    tension: 0
+                }
+            ]
+        };
+        const config = {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '------------Chart Title------------'
+                    }
+                
+                },
+                interaction: {
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Price'
+                        },
+                        // suggestedMin: 550,
+                        // suggestedMax: 610
+                    }
+                }
+            },
+        };
+        const myChart = new Chart(ctx, config);
+        // var myChart = new Chart(ctx, {
+        //     type: 'line', //圖表類型
+        //     data: {
+        //         //標題
+        //         labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+        //         datasets: [{
+        //             label: '# test', //標籤
+        //             data: [12, 19, 3, 5, 2, 3], //資料
+        //             //圖表背景色
+        //             backgroundColor: [
+        //                 'rgba(255, 99, 132, 0.2)',
+        //                 'rgba(54, 162, 235, 0.2)',
+        //                 'rgba(255, 206, 86, 0.2)',
+        //                 'rgba(75, 192, 192, 0.2)',
+        //                 'rgba(153, 102, 255, 0.2)',
+        //                 'rgba(255, 159, 64, 0.2)'
+        //             ],
+        //             //圖表外框線色
+        //             borderColor: [
+        //                 'rgba(255, 99, 132, 1)',
+        //                 'rgba(54, 162, 235, 1)',
+        //                 'rgba(255, 206, 86, 1)',
+        //                 'rgba(75, 192, 192, 1)',
+        //                 'rgba(153, 102, 255, 1)',
+        //                 'rgba(255, 159, 64, 1)'
+        //             ],
+        //             //外框線寬度
+        //             borderWidth: 1
+        //         }]
+        //     },
+        //     options: {
+        //         scales: {
+        //             yAxes: [{
+        //                 ticks: {
+        //                     beginAtZero: true,
+        //                     responsive: true //符合響應式
+        //                 }
+        //             }]
+        //         }
+        //     }
+        // });
+
+        // function queryStockWithMosaic(scode, qdate) {
+
+        // }
+
+        function queryStock() {
+
+            let scode = $('#qsc').val();
+            let qdate = $('#qd').val();
+
+            if (!scode || !qdate) {
+                alert("請輸入完整查詢資訊!");
+                return;
+            }
+
+            let stockData = JSON.parse(localStorage.getItem(scode));
+
+            let isExist = false;
+
+            if (stockData) {
+                let data = stockData.data;
+                for (let i of data) {
+                    let dayArray = i[0].split('/');
+                    let daystr = `${parseInt(dayArray[0]) + 1911}${dayArray[1]}${dayArray[2]}`
+                    if (qdate == daystr) {
+                        isExist = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isExist) {
+                $.ajax({
+                    url: BASE_API_URL + "stockInfo",
+                    data: JSON.stringify({
+                        time: qdate,
+                        stockCode: scode
+                    }),
+                    type: "POST",
+                    dataType: "json",
+                    contentType: "application/json;charset=utf-8",
+                    success: function (returnData) {
+                        console.log(returnData);
+                        localStorage.setItem(scode, JSON.stringify(returnData));
+
+                        let dt = returnData.data.map(x => { return { time: x[0], price: x[6] } });
+
+                        myChart.data.labels = dt.map(x => x.time);
+                        myChart.data.datasets[2].data = dt.map(x => x.price);
+                        myChart.data.datasets[1].data = dt.map(x => x.price - x.price % 10);
+                        myChart.data.datasets[0].data = dt.map(x => x.price - x.price % 30);
+                        myChart.config.options.plugins.title.text = returnData.title;
+                        myChart.update();
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(xhr.status);
+                        console.log(thrownError);
+                    }
+                });
+            }
+            else {
+                let dt = stockData.data.map(x => { return { time: x[0], price: x[6] } });
+                myChart.data.labels = dt.map(x => x.time);
+                myChart.data.datasets[2].data = dt.map(x => x.price);
+                myChart.data.datasets[1].data = dt.map(x => x.price - x.price % 10);
+                myChart.data.datasets[0].data = dt.map(x => x.price - x.price % 30);
+                // myChart.config.options.plugins.title.text = stockData.title;
+                myChart.config.options.plugins[0].title.text = stockData.title;
+                myChart.update();
+            }
+
+
+
+        }
+
+        function queryThreeBig() {
+            $.ajax({
+                url: BASE_API_URL + "threeBigMonth",
+                data: JSON.stringify({
+                    time: "20220301",
+                    stockCode: "0"
+                }),
+                type: "POST",
+                dataType: "json",
+                contentType: "application/json;charset=utf-8",
+                success: function (returnData) {
+                    console.log(returnData);
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(xhr.status);
+                    console.log(thrownError);
+                }
+            });
+        }
+    </script>
+    <!-- <div>
+        <button onclick="queryThreeBig()">查詢三大法人</button>
+    </div> -->
+    <div>
+        <button onclick="queryStock(this.value,this.id)">查詢個股資料</button>
+    </div>
+
+    <div>
+        <label>個股代號(例如:台積電2230):</label>
+        <input id="qsc" type="text">
+    </div>
+
+    <div>
+        <label>查詢日期(例如:2022年3月22日,輸入20220322):</label>
+        <input id="qd" type="text">
+    </div>
+
+</body>
+
+</html>
