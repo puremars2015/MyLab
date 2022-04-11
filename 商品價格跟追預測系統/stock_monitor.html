@@ -1,0 +1,34 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>股價追蹤面板</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"
+        integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+</head>
+
+<body>
+    <div>
+        <button onclick="AddNewPanel()">加入新面板</button>
+    </div>
+
+
+    <div id="panel_set">
+
+    </div>
+
+
+
+
+    <script>
+        function AddNewPanel() {
+            let ele = document.getElementById('panel_set');
+            ele.innerHTML += `<iframe src="stock_panel.html" style="width:100%; height:100%;"></iframe>`;
+        }
+    </script>
+</body>
+
+
+</html>

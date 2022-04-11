@@ -1,0 +1,251 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>股價追蹤面板</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"
+        integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        .group {
+            /* background-color: aqua; */
+            width: 100%;
+            display: flex;
+        }
+
+        .primary {
+            /* background-color: blueviolet; */
+            width: 50%;
+            /* display: flex; */
+        }
+
+        .secondary {
+            /* background-color: brown; */
+            width: 50%;
+            /* display: flex; */
+        }
+    </style>
+</head>
+
+<body>
+    <input id="gc" type="text" value="0" hidden>
+    <button onclick="RunInSampleTime()">一起跑HTML跟JS掛載</button>
+    <button onclick="RunInDiffertTime()">分開跑HTML跟JS掛載</button>
+    <button onclick="CreateHTML()">產生HTML</button>
+    <button onclick="CreateJS()">產生JS</button>
+    <input id="inputno" type="text">
+    <!-- <div id="g0">
+        <canvas id="myChart0" height="400px" width="350px"></canvas>
+    </div>
+    <div id="g1">
+        <canvas id="myChart1" height="400px" width="350px"></canvas>
+    </div> -->
+
+    <div id="monitors">
+
+    </div>
+
+    <script>
+
+        var __PAGES__ = [];
+
+
+        class Page {
+            constructor(no) {
+                this.BASE_API_URL = "http://220.133.234.2/";
+                this.CHART_COLORS = {
+                    red: 'rgb(255, 99, 132)',
+                    orange: 'rgb(255, 159, 64)',
+                    yellow: 'rgb(255, 205, 86)',
+                    green: 'rgb(75, 192, 192)',
+                    blue: 'rgb(54, 162, 235)',
+                    purple: 'rgb(153, 102, 255)',
+                    grey: 'rgb(201, 203, 207)'
+                };
+                this.ctx = document.getElementById('myChart' + no);
+                this.labels = [];
+                this.datapoints = [];
+                this.data = {
+                    labels: this.labels,
+                    datasets: [
+                        {
+                            label: '股價數據',
+                            data: this.datapoints,
+                            borderColor: this.CHART_COLORS.green,
+                            fill: false,
+                            tension: 0
+                        }
+                    ],
+                    stockCode: null,
+                    pointTime: null
+                };
+                this.config = {
+                    type: 'line',
+                    data: this.data,
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '------------Chart Title------------'
+                            }
+
+                        },
+                        interaction: {
+                            intersect: false,
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Price'
+                                }
+                            }
+                        }
+                    },
+                };
+                this.myChart = new Chart(this.ctx, this.config);
+            }
+        }
+
+
+        // function Add() {
+        //     let groupcount = parseInt(document.getElementById('gc').value) + 1;
+        //     let gm = document.getElementById('g0');
+        //     document.getElementsByTagName('body')[0].innerHTML += gm.outerHTML.replace('g0', `g${groupcount}`).replace('myChart0', `myChart${groupcount}`);
+        //     new Page(groupcount);
+        //     document.getElementById('gc').value = groupcount;
+        // }
+
+        // new Page(0);
+
+
+        function constructor(no) {
+
+            let BASE_API_URL = "http://220.133.234.2/";
+            let CHART_COLORS = {
+                red: 'rgb(255, 99, 132)',
+                orange: 'rgb(255, 159, 64)',
+                yellow: 'rgb(255, 205, 86)',
+                green: 'rgb(75, 192, 192)',
+                blue: 'rgb(54, 162, 235)',
+                purple: 'rgb(153, 102, 255)',
+                grey: 'rgb(201, 203, 207)'
+            };
+            let ctx = document.getElementById('myChart' + no);
+            let labels = [];
+            let datapoints = [];
+            let data = {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '股價數據',
+                        data: datapoints,
+                        borderColor: CHART_COLORS.green,
+                        fill: false,
+                        tension: 0
+                    }
+                ],
+                stockCode: null,
+                pointTime: null
+            };
+            let config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '------------Chart Title------------'
+                        }
+
+                    },
+                    interaction: {
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Price'
+                            }
+                        }
+                    }
+                },
+            };
+            let myChart = new Chart(ctx, config);
+        }
+
+        function CreateHTML() {
+            let v = document.getElementById('inputno').value;
+            let t = `<div id="g${v}"><canvas id="myChart${v}" height="400px" width="350px"></canvas></div>`
+            document.getElementsByTagName('body')[0].innerHTML += t;
+            document.getElementById('monitors').innerHTML += t;
+        }
+
+        function CreateJS() {
+            let v = document.getElementById('inputno').value;
+            return new Page(v);
+        }
+
+        function Add(v) {
+            // let v = document.getElementById('inputno').value;
+            return new Page(v);
+        }
+
+        function RunInSampleTime() {
+
+            __PAGES__ = [];
+
+            document.getElementById('monitors').innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                AddHtml(i);
+                __PAGES__.push(Add(i));
+            }
+
+            console.log(__PAGES__);
+
+            for(let p of __PAGES__) {
+                p.myChart.update();
+            }
+        }
+
+        function RunInDiffertTime() {
+
+            __PAGES__ = [];
+
+            document.getElementById('monitors').innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                AddHtml(i);
+            }
+            for (let i = 0; i < 3; i++) {
+                Add(i);
+            }
+        }
+
+
+
+
+    </script>
+</body>
+
+</html>

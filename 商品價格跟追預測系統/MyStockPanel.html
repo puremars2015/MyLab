@@ -1,0 +1,140 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>股價追蹤面板</title>
+    <!-- 禁止縮放畫面 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <script src="https://code.jquery.com/jquery-3.6.0.js"
+        integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        /* * {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        } */
+        /* body {
+            background-color: black;
+        } */
+        .row {
+            width: 100%;
+            border: black;
+            border-style: double;
+            padding: 5px;
+        }
+
+        .left-panel {
+            width: 100%;
+        }
+
+        .right-panel {
+            width: 100%;
+        }
+
+        .lb {
+            display: block;
+        }
+
+        .condition {
+            display: block;
+        }
+
+        .finger {
+            min-width: 45px;
+            min-height: 45px;
+        }
+
+        @media screen and (min-width:768px) {
+            .row {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div>
+        <button class="finger" onclick="AddNewPage()">新增頁面</button>
+    </div>
+
+    <div id="pages" class="group">
+    </div>
+
+    <script src="page.js"></script>
+    <script src="sub_page.js"></script>
+    <script src="page_templete.js"></script>
+    <script>
+
+        if (!window.__PAGE_COUNT__) {
+            __PAGE_COUNT__ = 0;
+        }
+
+        if (!window.__PAGES__) {
+            __PAGES__ = [];
+        }
+
+        function AddNewPage() {
+
+            // 先保留舊的QueryCondition
+            __QUERY_CONDITION_BACKUP__ = __PAGES__.map(x => x.QueryCondition);
+
+
+            __PAGE_COUNT__ += 1;
+            __PAGES__ = [];
+
+            // 新增html
+            document.getElementById('pages').innerHTML = GetPageHTML(__PAGE_COUNT__);
+
+            // 加載js
+            for (let i = 0; i < __PAGE_COUNT__; i++) {
+                let pg = new Page(i);
+
+                pg.OnPointClickEvent = (x, startTime, endTime) => {
+                    document.getElementById('rpanel' + x).innerHTML = GetRightPanelHTML(x);
+                    let subpage = new SubPage(x);
+                    subpage.Query(startTime, endTime);
+                }
+
+                __PAGES__.push(pg);
+            }
+
+            for (let i = 0; i < __PAGE_COUNT__ - 1; i++) {
+                __PAGES__[i].Query(__QUERY_CONDITION_BACKUP__[i]);
+            }
+
+            // console.log(__PAGE_COUNT__ ,__PAGES__.length);
+        }
+
+        function Query(self) {
+
+            let qsc = document.getElementById('qsc'+self.value).value;
+            // let qsc = document.getElementById('qsc'+self.value);
+            let mp = document.getElementById('mp'+self.value).value;
+
+            if (!qsc)
+            {
+                alert("請輸入股票代號");
+            }
+            else if (!mp)
+            {
+                alert("請輸入模糊化係數");
+            }
+            else
+            {
+                __PAGES__[self.value].Query();
+            }
+
+
+        }
+
+        function Print(n) {
+            console.log(n);
+            let element = document.getElementById(`row${n}`);
+            print(window);
+        }
+    </script>
+</body>
+
+</html>

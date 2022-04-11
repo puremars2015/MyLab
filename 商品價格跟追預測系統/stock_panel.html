@@ -1,0 +1,412 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>股價追蹤面板</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"
+        integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        .group {
+            /* background-color: aqua; */
+            width: 100%;
+            display: flex;
+        }
+
+        .primary {
+            /* background-color: blueviolet; */
+            width: 50%;
+            /* display: flex; */
+        }
+
+        .secondary {
+            /* background-color: brown; */
+            width: 50%;
+            /* display: flex; */
+        }
+    </style>
+</head>
+
+<body>
+    <input id="gc" type="text" value="0" hidden>
+    <button type="button" onclick="AddPanel()">ADD</button>
+    <div id="g0" class="group">
+
+        <div class="primary">
+            <div>
+                <canvas id="myChart0" height="400px" width="350px"></canvas>
+            </div>
+
+            <div>
+                <button id="qbtn0" onclick="Query(this)" value="0">查詢個股資料</button>
+                <input id="no0" type="text" value="0">
+            </div>
+
+            <div>
+                <label>個股代號(例如:台積電2330):</label>
+                <input id="qsc0" type="text" value="2330">
+            </div>
+
+            <div>
+                <label>查詢日期(例如:2022年3月22日,輸入20220322):</label>
+                <input id="qd0" type="text" value="20220301">
+            </div>
+
+            <div>
+                <label>模糊化係數(例如:30,表示以30為一格,減少小波動):</label>
+                <input id="mp0" type="text" value="30">
+            </div>
+
+            <div>
+                <button>手動新增資料</button>
+            </div>
+
+            <div>
+                <label>個股代號(例如:台積電2330):</label>
+                <input>
+            </div>
+
+            <div>
+                <label>資料日期(例如:2022年3月22日,輸入20220322):</label>
+                <input>
+            </div>
+
+            <div>
+                <label>收盤價:</label>
+                <input>
+            </div>
+        </div>
+        <div id="sub_panel0" class="secondary">
+
+        </div>
+    </div>
+
+    <script>
+        const _PAGES_ = [];
+
+        const BASE_API_URL = "http://220.133.234.2/";
+        const CHART_COLORS = {
+            red: 'rgb(255, 99, 132)',
+            orange: 'rgb(255, 159, 64)',
+            yellow: 'rgb(255, 205, 86)',
+            green: 'rgb(75, 192, 192)',
+            blue: 'rgb(54, 162, 235)',
+            purple: 'rgb(153, 102, 255)',
+            grey: 'rgb(201, 203, 207)'
+        };
+
+        class Page {
+            constructor(no) {
+                this.ctx = document.getElementById('myChart' + no);
+                this.labels = [];
+                this.datapoints = [];
+                this.data = {
+                    labels: this.labels,
+                    datasets: [
+                        // {
+                        //     label: '模糊化後數據 (%30)',
+                        //     data: datapoints,
+                        //     borderColor: CHART_COLORS.red,
+                        //     fill: false,
+                        //     // cubicInterpolationMode: 'monotone',
+                        //     tension: 0
+                        // },
+                        // {
+                        //     label: '模糊化後數據 (%10)',
+                        //     data: datapoints,
+                        //     borderColor: CHART_COLORS.blue,
+                        //     fill: false,
+                        //     tension: 0
+                        // },
+                        {
+                            label: '股價數據',
+                            data: this.datapoints,
+                            borderColor: CHART_COLORS.green,
+                            fill: false,
+                            tension: 0
+                        }
+                    ],
+                    stockCode: null,
+                    pointTime: null
+                };
+                this.config = {
+                    type: 'line',
+                    data: this.data,
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '------------Chart Title------------'
+                            }
+
+                        },
+                        interaction: {
+                            intersect: false,
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Price'
+                                },
+                                // min: 500,
+                                // max: 600,
+                                // ticks: {
+
+                                //     stepSize: 30,
+                                //     reverse: false,
+                                // }
+                            }
+                        }
+                    },
+                };
+                this.myChart = new Chart(this.ctx, this.config);
+
+                this.ctx.onclick = (evt) => {
+                    // const points = myChart.getElementsAtEventForMode(
+                    //     evt,
+                    //     'nearest',
+                    //     { intersect: true },
+                    //     true);
+                    // if (points.length) {
+                    //     let scode = document.getElementById('qsc').value;
+                    //     let mosiac = new Number(document.getElementById('mp').value);
+
+                    //     let stockData = JSON.parse(localStorage.getItem(scode));
+
+                    //     // var myWindow = window.open("jump_window.html", "MsgWindow", `width=900px,height=700px,top=${screen.height / 2},left=${screen.width / 2}`);
+
+                    //     OpenSubPanel();
+
+                    //     localStorage.setItem('StockCode', myChart.data.stockCode);
+                    //     localStorage.setItem('StartTime', myChart.data.labels[points[0].index]);
+                    //     localStorage.setItem('EndTime', myChart.data.labels[points[0].index + 1]);
+                    // }
+                }
+            }
+        }
+
+        // function OpenSubPanel() {
+        //     let ele = document.getElementById('sub_panel');
+        //     ele.innerHTML = `<iframe src="jump_window.html" style="width:400px;height:370px;"></iframe>`;
+        // }
+
+
+        function Expand(stockData, mosiac, date) {
+            let dt = stockData.data.map(x => { return { time: x[0], price: x[6] - x[6] % mosiac } });
+
+            dt = DistinctWithoutDate(dt, date);
+
+            myChart.data.labels = dt.map(x => x.time);
+            myChart.data.datasets[0].data = dt.map(x => x.price);
+            myChart.config.options.plugins.title.text = stockData.title;
+            myChart.update();
+        }
+
+        function Draw(stockData, mosiac) {
+
+            let dt = [];
+
+            for (x of stockData) {
+
+                let p = 0;
+                if (x.Close % mosiac == 0) {
+                    p = x.Close;
+                }
+                else {
+                    p = x.Close - x.Close % mosiac + mosiac;
+                }
+
+                dt.push({
+                    time: x.Date,
+                    price: p,
+                    original: x.Close
+                });
+            }
+
+            dt = Distinct(dt);
+
+            myChart.data.labels = dt.map(x => x.time);
+            myChart.data.datasets[0].data = dt.map(x => x.price);
+
+            let maxp;
+            let minp;
+
+            for (let i = 0; i < myChart.data.datasets[0].data.length; i++) {
+
+                let current = myChart.data.datasets[0].data[i];
+
+                if (i == 0) {
+                    maxp = current;
+                    minp = current;
+                }
+
+                if (current > maxp) {
+                    maxp = current;
+                }
+
+
+                if (current < minp) {
+                    minp = current;
+                }
+
+            }
+
+            // X軸刻度數
+            let xp = myChart.data.labels.length;
+            // Y軸刻度數
+            let yp = ((maxp - minp) / mosiac + 1)
+            // Y軸需要增加的刻度數
+            let ypplus = xp - yp;
+
+            let p = parseInt(ypplus / 2);
+
+            if (maxp != minp) {
+                if (ypplus % 2 == 0) {
+                    myChart.config.options.scales.y.max = maxp + p * mosiac;
+                    myChart.config.options.scales.y.min = minp - p * mosiac;
+                }
+                else {
+                    myChart.config.options.scales.y.max = maxp + p * mosiac;
+                    myChart.config.options.scales.y.min = minp - (p + 1) * mosiac;
+                }
+            }
+
+            myChart.config.options.plugins.title.text = stockData.title;
+            myChart.config.options.scales.y.ticks.stepSize = mosiac;
+            myChart.update();
+        }
+
+        function Query(self) {
+
+            console.log(self);
+
+            const no = self.value;
+
+            let scode = document.getElementById('qsc' + no).value;
+            let qdate = document.getElementById('qd' + no).value;
+            let mosiac = new Number(document.getElementById('mp' + no).value);
+
+            if (!scode || !qdate) {
+                alert("請輸入完整查詢資訊!");
+                return;
+            }
+
+            let stockData = JSON.parse(localStorage.getItem(scode));
+
+            let isExist = false;
+
+            if (stockData) {
+                let data = stockData;
+                for (let i of data) {
+                    let daystr = i.Date;
+                    if (qdate == daystr) {
+                        isExist = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isExist) {
+                $.ajax({
+                    url: BASE_API_URL + "stockInfoV2",
+                    data: JSON.stringify({
+                        time: qdate,
+                        stockCode: scode
+                    }),
+                    type: "POST",
+                    dataType: "json",
+                    contentType: "application/json;charset=utf-8",
+                    success: function (returnData) {
+
+                        localStorage.setItem(scode, JSON.stringify(returnData));
+                        myChart.data.stockCode = scode;
+
+                        Draw(returnData, mosiac);
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(xhr.status);
+                        console.log(thrownError);
+                    }
+                });
+            }
+            else {
+                myChart.data.stockCode = scode;
+
+                Draw(stockData, mosiac);
+            }
+        }
+
+
+
+        function Distinct(dt) {
+            let distinct = [];
+            let lastone = null;
+
+            for (let data of dt) {
+                if (!lastone || lastone.price != data.price) {
+                    lastone = data;
+                    distinct.push(data);
+                }
+            }
+
+            return distinct;
+        }
+
+        function DistinctWithoutDate(dt, date) {
+            let distinct = [];
+            let lastone = null;
+            let isActive = false;
+
+            for (let data of dt) {
+                if (!lastone || lastone.price != data.price) {
+                    lastone = data;
+                    distinct.push(data);
+                    isActive = false;
+                }
+
+                if (data.time == date) {
+                    isActive = true;
+                }
+
+                if (lastone.price == data.price && isActive && data.time != date) {
+                    distinct.push(data);
+                }
+            }
+
+            return distinct;
+        }
+
+        _PAGES_.push(new Page(0));
+
+        function AddPanel() {
+            let groupcount = parseInt(document.getElementById('gc').value) + 1;
+            let gm = document.getElementById('g0');
+            document.getElementsByTagName('body')[0].innerHTML += gm.outerHTML
+                .replace('g0', `g${groupcount}`)
+                .replace('myChart0', `myChart${groupcount}`)
+                .replace('qsc0', 'qsc' + groupcount)
+                .replace('qd0', 'qd' + groupcount)
+                .replace('mp0', 'mp' + groupcount)
+                .replace('no0', 'no' + groupcount)
+                .replace('qbtn0', 'qbtn' + groupcount)
+                .replace('sub_panel0', 'sub_panel' + groupcount);
+            _PAGES_.push(new Page(groupcount));
+            document.getElementById('gc').value = groupcount;
+        }
+    </script>
+
+</body>
+
+</html>
